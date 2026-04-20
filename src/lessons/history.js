@@ -146,7 +146,8 @@ export const HISTORY_LESSONS = {
       { q: 'What did Stone Age homes have for heating and cooking?', options: ['Radiators', 'A fire in the middle', 'Microwaves', 'Electric heaters'], correct: 1, cheer: 'Correct — simple but effective.' },
       { q: 'What were Stone Age people actually like?', options: ['Silly and lazy', 'Not very clever', 'Skilled and creative', 'Afraid of everything'], correct: 2, cheer: 'Exactly! They were very impressive.' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'pWHCyyWCCLc',
     bitesizeQuery: 'stone age britain'
   },
 
@@ -181,6 +182,7 @@ export const HISTORY_LESSONS = {
       { q: 'What were the Celts famous for making in their art?', options: ['Photos', 'Swirling patterns', 'Plain lines', 'Stick figures'], correct: 1, cheer: 'Beautiful, curvy Celtic art!' }
     ],
     hasVideo: true,
+    videoId: 'cH_uowNBJno',
     bitesizeQuery: 'iron age celts britain'
   },
 
@@ -214,7 +216,8 @@ export const HISTORY_LESSONS = {
       { q: 'Which Egyptian god had the head of a jackal?', options: ['Horus', 'Bastet', 'Anubis', 'Ra'], correct: 2, cheer: 'Excellent.' },
       { q: 'What animal was especially loved in Ancient Egypt?', options: ['Dogs', 'Cats', 'Sheep', 'Snakes'], correct: 1, cheer: 'Yes — cats were almost holy!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'DklFWjDJMzA',
     bitesizeQuery: 'ancient egypt pyramids'
   },
 
@@ -249,7 +252,7 @@ export const HISTORY_LESSONS = {
       { q: 'Who mostly went to school?', options: ['Everyone', 'Boys from important families', 'Only girls', 'Nobody'], correct: 1, cheer: 'Correct — school wasn\'t open to all yet.' }
     ],
     hasVideo: true,
-    videoId: 'DklFWjDJMzA',
+    videoId: '04cs4-BMsHo',
     bitesizeQuery: 'ancient egypt daily life'
   },
 
@@ -283,7 +286,8 @@ export const HISTORY_LESSONS = {
       { q: 'Where does the word "democracy" come from?', options: ['English', 'Latin', 'Greek', 'Egyptian'], correct: 2, cheer: 'Yes — demos-kratos, people-power!' },
       { q: 'What famous games started in Ancient Greece?', options: ['Video games', 'The Olympic Games', 'Football', 'Cricket'], correct: 1, cheer: 'Exactly right!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'qYdoBzgtlCw',
     bitesizeQuery: 'ancient greece athens sparta'
   },
 
@@ -318,6 +322,7 @@ export const HISTORY_LESSONS = {
       { q: 'What happens before each modern Olympics?', options: ['A flame is carried from Olympia', 'A parade through Paris', 'Football match', 'Boat race'], correct: 0, cheer: 'Keeping the ancient spirit alive!' }
     ],
     hasVideo: true,
+    videoId: 'adpEGAh0GFw',
     bitesizeQuery: 'ancient greece democracy olympics'
   },
 
@@ -351,7 +356,8 @@ export const HISTORY_LESSONS = {
       { q: 'Roughly how many people lived in the Roman Empire at its biggest?', options: ['60 thousand', '600 thousand', '6 million', '60 million'], correct: 3, cheer: 'Huge!' },
       { q: 'What language did the Romans speak?', options: ['Greek', 'Latin', 'English', 'Italian'], correct: 1, cheer: 'Yes — and it shaped many modern languages!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: '3X7D8yz6QFg',
     bitesizeQuery: 'ancient rome empire caesar'
   },
 
@@ -386,6 +392,7 @@ export const HISTORY_LESSONS = {
       { q: 'Why did the Romans leave Britain?', options: ['They ran out of food', 'Their empire was under attack elsewhere', 'A storm', 'Boudicca\'s ghost'], correct: 1, cheer: 'Correct.' }
     ],
     hasVideo: true,
+    videoId: 'nN_x9o8MV1o',
     bitesizeQuery: 'romans in britain'
   },
 
@@ -419,7 +426,8 @@ export const HISTORY_LESSONS = {
       { q: 'What was the Viking-controlled part of England called?', options: ['Vikingland', 'The Danelaw', 'Northumbria', 'Mercia'], correct: 1, cheer: 'Correct!' },
       { q: 'How long before Columbus did Vikings reach America?', options: ['A year', '10 years', '100 years', '500 years'], correct: 3, cheer: 'First Europeans there!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'X0QnGvl3rJo',
     bitesizeQuery: 'vikings raid lindisfarne'
   },
 
@@ -454,6 +462,7 @@ export const HISTORY_LESSONS = {
       { q: 'What famous (if clumsy) thing is Alfred said to have done?', options: ['Lost a battle', 'Burnt some cakes', 'Fallen off a horse', 'Slept all day'], correct: 1, cheer: 'Legendary cakes!' }
     ],
     hasVideo: true,
+    videoId: '-cKGz-st75w',
     bitesizeQuery: 'anglo saxons alfred the great'
   },
 
@@ -487,7 +496,8 @@ export const HISTORY_LESSONS = {
       { q: 'What huge survey did William order?', options: ['The Big Book', 'Domesday Book', 'The Census', 'The Magna Carta'], correct: 1, cheer: 'Yes!' },
       { q: 'Roughly how many castles did William build?', options: ['5', '50', '500', '5,000'], correct: 2, cheer: 'Lots! Including the Tower of London.' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'bxpTxuPTklA',
     bitesizeQuery: 'norman conquest 1066 battle hastings'
   },
 
@@ -522,6 +532,7 @@ export const HISTORY_LESSONS = {
       { q: 'What was a "page"?', options: ['A page in a book', 'A young boy training for knighthood', 'A fast messenger', 'A clown'], correct: 1, cheer: 'Boys serving in castles.' }
     ],
     hasVideo: true,
+    videoId: 'AesgRREuCQI',
     bitesizeQuery: 'medieval castle life'
   },
 
@@ -555,7 +566,8 @@ export const HISTORY_LESSONS = {
       { q: 'What did King Arthur\'s knights search for?', options: ['Gold', 'The Holy Grail', 'A dragon', 'A princess'], correct: 1, cheer: 'A sacred quest!' },
       { q: 'Who was King Arthur\'s wizard friend?', options: ['Gandalf', 'Dumbledore', 'Merlin', 'Harry'], correct: 2, cheer: 'The legendary Merlin!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'g9LDqw1dFMk',
     bitesizeQuery: 'medieval knights chivalry'
   },
 
@@ -590,6 +602,7 @@ export const HISTORY_LESSONS = {
       { q: 'What should we do when a new disease appears today?', options: ['Panic', 'Work together with scientists and doctors', 'Ignore it', 'Run away'], correct: 1, cheer: 'Teamwork saves lives.' }
     ],
     hasVideo: true,
+    videoId: 'myw23rX5mVo',
     bitesizeQuery: 'black death plague medieval'
   }
 };
