@@ -17,10 +17,11 @@ import {
 import { sfx, primeAudio } from './sounds.js';
 import LessonAnimation from './animations.jsx';
 
-const NAMES = ['Ava', 'Layla'];
+const NAMES = ['Ava', 'Layla', 'Salahuddin'];
+const SISTER_NAMES = ['Ava', 'Layla'];
 
 /* ============================================================
-   THEMES — two distinct worlds
+   THEMES — three distinct worlds
    ============================================================ */
 const THEME = {
   Ava: {
@@ -64,6 +65,27 @@ const THEME = {
     wrongLine: ['Close one!', 'Unlucky!', 'Next time!', 'Keep pushing!'],
     decorBg: ['🏆','⚽','🥅','⭐'],
     tokens: { '--theme-border': '#86efac', '--theme-border-strong': '#16a34a', '--theme-input-bg': '#f0fdf4' }
+  },
+  Salahuddin: {
+    name: 'Salahuddin',
+    emoji: '🦖',
+    mascotEmoji: '🦖',
+    worldName: 'Dino Discovery',
+    tagline: 'ROAR into action, explorer!',
+    bgClass: 'salah-bg',
+    cardClass: 'salah-card',
+    gradient: 'salah-gradient',
+    gradientSoft: 'salah-gradient-soft',
+    text: 'salah-text',
+    accent: 'salah-accent',
+    pill: 'salah-pill',
+    pattern: 'salah-pattern',
+    font: 'font-display',
+    decor: ['🦖', '🦕', '🌋', '🦴', '🌿', '🥚'],
+    correctLine: ['ROAR-some!', 'T-rex-cellent!', 'Dino-mite!', 'Prehistoric power!', 'Fossil find!'],
+    wrongLine: ['Keep hunting!', 'Try again, explorer!', 'Nearly unearthed!', 'Dig deeper!'],
+    decorBg: ['🦖','🦕','🌋','🦴'],
+    tokens: { '--theme-border': '#fdba74', '--theme-border-strong': '#ea580c', '--theme-input-bg': '#fff7ed' }
   }
 };
 
@@ -442,8 +464,61 @@ function LaylaMascot({ mood = 'idle', size = 120 }) {
   );
 }
 
+function SalahuddinMascot({ mood = 'idle', size = 120 }) {
+  const bounce = mood === 'happy' ? 'bounce-in' : '';
+  const sway = mood === 'idle' ? 'floaty' : '';
+  return (
+    <svg viewBox="0 0 140 130" width={size} height={size * 130 / 140} className={bounce}>
+      {/* Ground */}
+      <line x1="15" y1="118" x2="125" y2="118" stroke="#a16207" strokeWidth="2" strokeDasharray="5 3" opacity="0.5" />
+      <g className={sway} style={{transformOrigin:'70px 90px'}}>
+        {/* Tail */}
+        <path d="M 35 95 Q 18 80 20 65 Q 28 70 38 85 Z" fill="#16a34a" stroke="#166534" strokeWidth="2" />
+        {/* Body */}
+        <ellipse cx="65" cy="88" rx="30" ry="22" fill="#22c55e" stroke="#166534" strokeWidth="2" />
+        {/* Back spikes */}
+        <polygon points="50,70 55,60 60,70" fill="#ea580c" stroke="#9a3412" strokeWidth="1.5" />
+        <polygon points="65,66 70,55 75,66" fill="#ea580c" stroke="#9a3412" strokeWidth="1.5" />
+        <polygon points="80,70 85,60 90,70" fill="#ea580c" stroke="#9a3412" strokeWidth="1.5" />
+        {/* Legs */}
+        <rect x="50" y="104" width="8" height="14" rx="2" fill="#16a34a" stroke="#166534" strokeWidth="1.5" />
+        <rect x="72" y="104" width="8" height="14" rx="2" fill="#16a34a" stroke="#166534" strokeWidth="1.5" />
+        {/* Head */}
+        <ellipse cx="95" cy="65" rx="22" ry="18" fill="#22c55e" stroke="#166534" strokeWidth="2" />
+        {/* Mouth + teeth */}
+        {mood === 'happy' ? (
+          <>
+            <path d="M 80 68 Q 95 80 108 68" stroke="#166534" strokeWidth="2" fill="#fef3c7" strokeLinecap="round" />
+            <polygon points="86,70 88,76 90,70" fill="white" />
+            <polygon points="95,72 97,78 99,72" fill="white" />
+            <polygon points="102,70 104,76 106,70" fill="white" />
+          </>
+        ) : mood === 'sad' ? (
+          <path d="M 82 74 Q 95 68 106 74" stroke="#166534" strokeWidth="2" fill="none" strokeLinecap="round" />
+        ) : (
+          <>
+            <path d="M 82 70 Q 95 75 108 70" stroke="#166534" strokeWidth="2" fill="#fef3c7" strokeLinecap="round" />
+            <polygon points="88,72 90,76 92,72" fill="white" />
+            <polygon points="100,72 102,76 104,72" fill="white" />
+          </>
+        )}
+        {/* Eye */}
+        <circle cx="98" cy="58" r="4" fill="white" />
+        <circle cx="99" cy="58" r="2" fill="#1f2937" />
+        {/* Nostril */}
+        <circle cx="114" cy="62" r="1.5" fill="#166534" />
+      </g>
+      {/* Volcano on horizon */}
+      <text x="18" y="28" fontSize="18">🌋</text>
+    </svg>
+  );
+}
+
 function Mascot({ who, mood, size }) {
-  return who === 'Ava' ? <AvaMascot mood={mood} size={size} /> : <LaylaMascot mood={mood} size={size} />;
+  if (who === 'Ava') return <AvaMascot mood={mood} size={size} />;
+  if (who === 'Layla') return <LaylaMascot mood={mood} size={size} />;
+  if (who === 'Salahuddin') return <SalahuddinMascot mood={mood} size={size} />;
+  return <AvaMascot mood={mood} size={size} />;
 }
 
 /* ============================================================
@@ -479,18 +554,21 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let unsubA = null, unsubL = null;
+    const unsubs = [];
     (async () => {
       const savedUser = getLocalUser();
       if (savedUser && NAMES.includes(savedUser)) setUser(savedUser);
-      const [ava, layla] = await Promise.all([loadProgress('Ava'), loadProgress('Layla')]);
-      setProgress({ Ava: ava || {}, Layla: layla || {} });
+      const loaded = await Promise.all(NAMES.map(n => loadProgress(n)));
+      const initial = {};
+      NAMES.forEach((n, i) => { initial[n] = loaded[i] || {}; });
+      setProgress(initial);
       setLoading(false);
-      unsubA = subscribeProgress('Ava', (d) => setProgress(p => ({ ...p, Ava: d || {} })));
-      unsubL = subscribeProgress('Layla', (d) => setProgress(p => ({ ...p, Layla: d || {} })));
+      NAMES.forEach(n => {
+        unsubs.push(subscribeProgress(n, (d) => setProgress(p => ({ ...p, [n]: d || {} }))));
+      });
       if (window.speechSynthesis) window.speechSynthesis.getVoices();
     })();
-    return () => { if (unsubA) unsubA(); if (unsubL) unsubL(); };
+    return () => { unsubs.forEach(u => u && u()); };
   }, []);
 
   function chooseUser(name) {
@@ -514,12 +592,15 @@ export default function App() {
     const p = progress[name]?.[`day${d}`];
     return p && p.spelling !== undefined && p.vocab !== undefined && p.writing !== undefined && p.math !== undefined && p.reading !== undefined;
   };
+  // Each user's currentDay only depends on their OWN progress.
+  // Salahuddin's completion never affects the sisters; the sisters never affect Salahuddin.
   const currentDay = useMemo(() => {
+    if (!user) return 1;
     let d = 1;
-    while (d < TOTAL_DAYS && isDayComplete('Ava', d) && isDayComplete('Layla', d)) d++;
+    while (d < TOTAL_DAYS && isDayComplete(user, d)) d++;
     return d;
   // eslint-disable-next-line
-  }, [progress]);
+  }, [progress, user]);
 
   // Apply theme CSS vars
   useEffect(() => {
@@ -555,7 +636,8 @@ export default function App() {
       {screen === 'lesson-history'   && <LessonActivity key="lh" subject="history"   {...sharedProps} />}
       {screen === 'lesson-geography' && <LessonActivity key="lg" subject="geography" {...sharedProps} />}
       {screen === 'lesson-science'   && <LessonActivity key="ls" subject="science"   {...sharedProps} />}
-      {screen === 'scoreboard' && <Scoreboard {...sharedProps} />}
+      {screen === 'leaderboard' && <Leaderboard {...sharedProps} />}
+      {screen === 'scoreboard' && <Leaderboard {...sharedProps} />}
       {screen === 'dayDone' && <DayCompleteScreen {...sharedProps} />}
     </div>
   );
@@ -568,16 +650,18 @@ function ProfileSelection({ onSelect, progress }) {
   return (
     <div className="font-body min-h-screen w-full ava-bg flex flex-col items-center justify-center p-6">
       <div className="text-center mb-10 pop-in">
-        <div className="text-6xl mb-2 floaty">🐶 ✨ ⚽</div>
-        <h1 className="font-display text-5xl md:text-7xl font-bold leading-tight">
+        <div className="text-6xl mb-2 floaty">🐶 ⚽ 🦖</div>
+        <h1 className="font-display text-4xl md:text-6xl font-bold leading-tight">
           <span className="ava-text">Ava</span>
-          <span className="text-gray-400"> &amp; </span>
+          <span className="text-gray-400">, </span>
           <span className="layla-text">Layla</span>
+          <span className="text-gray-400"> &amp; </span>
+          <span className="salah-text">Salahuddin</span>
         </h1>
         <h2 className="font-display text-3xl md:text-5xl font-semibold text-purple-700 mt-1">Learn Together!</h2>
         <p className="mt-4 text-lg text-gray-600 font-medium">Who's playing today?</p>
       </div>
-      <div className="grid md:grid-cols-2 gap-6 w-full max-w-3xl">
+      <div className="grid md:grid-cols-3 gap-6 w-full max-w-5xl">
         {NAMES.map((n) => {
           const t = THEME[n];
           const totalPts = totalPoints(progress[n]);
@@ -595,7 +679,7 @@ function ProfileSelection({ onSelect, progress }) {
                 <div className="flex items-center gap-4 mb-3">
                   <Mascot who={n} mood="idle" size={90} />
                 </div>
-                <div className={`${t.font} text-6xl font-bold drop-shadow`}>{n}</div>
+                <div className={`${t.font} text-5xl font-bold drop-shadow`}>{n}</div>
                 <div className="text-white/90 mt-2 text-lg font-medium">{t.worldName}</div>
                 <div className="mt-4 text-white/90 text-base"><span className="font-bold text-xl">{totalPts}</span> points so far</div>
                 <div className="mt-2 text-white/90 font-semibold">Tap to start →</div>
@@ -627,11 +711,12 @@ function dayPoints(dayObj, activities) {
    ============================================================ */
 function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete }) {
   const me = THEME[user];
-  const sister = user === 'Ava' ? 'Layla' : 'Ava';
-  const them = THEME[sister];
+  // Only Ava/Layla have a "sister" relationship. Salahuddin is solo on home view.
+  const sister = user === 'Ava' ? 'Layla' : user === 'Layla' ? 'Ava' : null;
+  const them = sister ? THEME[sister] : null;
   const dayKey = `day${currentDay}`;
   const myDay = progress[user][dayKey] || {};
-  const sisDay = progress[sister][dayKey] || {};
+  const sisDay = sister ? (progress[sister][dayKey] || {}) : {};
 
   // v3.2: in-progress state for paused badge
   const [inProgress, setInProgress] = useState({});
@@ -684,9 +769,9 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
 
   const totalPossibleToday = activities.reduce((s, a) => s + a.outOf, 0);
   const myTotalToday = activities.reduce((s, a) => s + (myDay[a.id] || 0), 0);
-  const sisTotalToday = activities.reduce((s, a) => s + (sisDay[a.id] || 0), 0);
+  const sisTotalToday = sister ? activities.reduce((s, a) => s + (sisDay[a.id] || 0), 0) : 0;
   const myAllDone = isDayComplete(user, currentDay);
-  const sisAllDone = isDayComplete(sister, currentDay);
+  const sisAllDone = sister ? isDayComplete(sister, currentDay) : false;
 
   // Trophy cabinet — one trophy per fully completed day
   const myCompleted = [];
@@ -718,7 +803,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className={`${me.font} text-sm md:text-base uppercase tracking-widest opacity-95`}>
-              {user === 'Ava' ? 'Today at Pawsome Academy' : 'Today\'s Match'}
+              {user === 'Ava' ? 'Today at Pawsome Academy' : user === 'Layla' ? "Today's Match" : "Today's Dig Site"}
             </div>
             <div className="font-display text-5xl md:text-6xl font-bold mt-1">Day {currentDay}</div>
             <div className="opacity-90 mt-1">of {TOTAL_DAYS}</div>
@@ -740,28 +825,43 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
         </div>
       </div>
 
-      {/* Sister strip */}
-      <div className="rounded-3xl p-5 bg-white kid-shadow mb-6">
-        <div className="flex items-center gap-4">
-          <Mascot who={sister} mood="idle" size={54} />
-          <div className="flex-1">
-            <div className="font-display text-lg text-gray-800">
-              {sister}'s Day {currentDay}: <span className={`font-bold ${them.text}`}>{sisTotalToday} points</span>
+      {/* Sister strip — only shown for Ava & Layla (they see each other) */}
+      {sister && (
+        <div className="rounded-3xl p-5 bg-white kid-shadow mb-6">
+          <div className="flex items-center gap-4">
+            <Mascot who={sister} mood="idle" size={54} />
+            <div className="flex-1">
+              <div className="font-display text-lg text-gray-800">
+                {sister}'s Day {currentDay}: <span className={`font-bold ${them.text}`}>{sisTotalToday} points</span>
+              </div>
+              <div className="text-sm text-gray-500 flex flex-wrap gap-2 mt-1">
+                {activities.map(a => (
+                  <span key={a.id} className="flex items-center gap-1">
+                    <span>{a.emoji}</span>
+                    {sisDay[a.id] !== undefined
+                      ? <span className="text-emerald-600 font-semibold">{sisDay[a.id]}/{a.outOf}</span>
+                      : <span className="text-gray-400">—</span>}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="text-sm text-gray-500 flex flex-wrap gap-2 mt-1">
-              {activities.map(a => (
-                <span key={a.id} className="flex items-center gap-1">
-                  <span>{a.emoji}</span>
-                  {sisDay[a.id] !== undefined
-                    ? <span className="text-emerald-600 font-semibold">{sisDay[a.id]}/{a.outOf}</span>
-                    : <span className="text-gray-400">—</span>}
-                </span>
-              ))}
-            </div>
+            {sisAllDone && <div className="text-2xl">✅</div>}
           </div>
-          {sisAllDone && <div className="text-2xl">✅</div>}
         </div>
-      </div>
+      )}
+
+      {/* Leaderboard button — visible to all, so everyone can see how everyone's doing */}
+      <button onClick={() => { sfx.pop(); setScreen('leaderboard'); }}
+        className="w-full rounded-3xl p-4 bg-gradient-to-r from-amber-400 via-pink-400 to-violet-500 text-white kid-shadow mb-6 pressable flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">🏆</span>
+          <div className="text-left">
+            <div className="font-display text-lg font-bold">Leaderboard</div>
+            <div className="text-sm opacity-90">See how everyone's doing</div>
+          </div>
+        </div>
+        <ChevronRight className="w-6 h-6" />
+      </button>
 
       {/* Activities */}
       <div className="grid sm:grid-cols-2 gap-5 mb-6">
@@ -825,7 +925,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
       {myCompleted.length > 0 && (
         <div className="rounded-3xl p-5 bg-white kid-shadow mb-6">
           <div className={`font-display text-lg font-bold ${me.text} mb-3 flex items-center gap-2`}>
-            <Medal className="w-5 h-5" /> {user === 'Ava' ? 'Your sparkle collection' : 'Your trophy cabinet'}
+            <Medal className="w-5 h-5" /> {user === 'Ava' ? 'Your sparkle collection' : user === 'Layla' ? 'Your trophy cabinet' : 'Your fossil collection'}
             <span className="text-gray-500 text-sm font-medium ml-auto">{myCompleted.length} day{myCompleted.length === 1 ? '' : 's'} done</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -834,7 +934,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
               const earned = myCompleted.includes(d);
               return (
                 <div key={d} className={`trophy-slot ${earned ? 'earned' : ''}`} title={`Day ${d}`}>
-                  {earned ? (user === 'Ava' ? '💖' : '🏆') : <span className="text-gray-300 text-xs">{d}</span>}
+                  {earned ? (user === 'Ava' ? '💖' : user === 'Layla' ? '🏆' : '🦴') : <span className="text-gray-300 text-xs">{d}</span>}
                 </div>
               );
             })}
@@ -845,9 +945,8 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
       {/* Footer status */}
       <div className="rounded-3xl p-5 bg-white kid-shadow text-center">
         {!myAllDone && (<div className="font-display text-xl text-gray-700">Finish all {activities.length} activities to unlock Day {currentDay + 1}! 🚀</div>)}
-        {myAllDone && !sisAllDone && (<div className="font-display text-xl text-gray-700">Amazing work, {user}! 🎉 Waiting for <span className={them.text}>{sister}</span> to finish Day {currentDay}…</div>)}
-        {myAllDone && sisAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">You both finished Day {currentDay}! Day {currentDay + 1} is unlocking… 🎊</div>)}
-        {currentDay >= TOTAL_DAYS && myAllDone && sisAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're superstars! 🏆</div>)}
+        {myAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">Day {currentDay} complete! 🎉 Day {currentDay + 1} is unlocking…</div>)}
+        {currentDay >= TOTAL_DAYS && myAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're a superstar! 🏆</div>)}
       </div>
     </div>
   );
@@ -1545,7 +1644,7 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
             )}
 
             {feedback.cheer && (
-              <div className={`rounded-2xl p-5 text-center font-display text-lg ${user === 'Ava' ? 'ava-pill' : 'layla-pill'}`}>
+              <div className={`rounded-2xl p-5 text-center font-display text-lg ${theme.pill}`}>
                 {feedback.cheer}
               </div>
             )}
@@ -2590,21 +2689,27 @@ function ResultsCard({ theme, color, title, score, total, items, onDone }) {
    ============================================================ */
 function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplete }) {
   const me = THEME[user];
-  const sister = user === 'Ava' ? 'Layla' : 'Ava';
-  const them = THEME[sister];
+  // Only Ava/Layla have a "sister" to compare with on this screen.
+  const sister = user === 'Ava' ? 'Layla' : user === 'Layla' ? 'Ava' : null;
+  const them = sister ? THEME[sister] : null;
   const activities = [
     { id: 'spelling', outOf: 10 }, { id: 'vocab', outOf: 20 }, { id: 'writing', outOf: 10 }, { id: 'math', outOf: 10 }, { id: 'reading', outOf: 4 },
     { id: 'history', outOf: 10 }, { id: 'geography', outOf: 10 }, { id: 'science', outOf: 10 }
   ];
   const myDay = progress[user][`day${currentDay}`] || {};
-  const sisDay = progress[sister][`day${currentDay}`] || {};
+  const sisDay = sister ? (progress[sister][`day${currentDay}`] || {}) : {};
   const my = dayPoints(myDay, activities);
-  const sis = dayPoints(sisDay, activities);
+  const sis = sister ? dayPoints(sisDay, activities) : 0;
   const dayMax = activities.reduce((s, a) => s + a.outOf, 0); // 84 possible
-  const bothDone = isDayComplete(user, currentDay) && isDayComplete(sister, currentDay);
+  const sisDone = sister ? isDayComplete(sister, currentDay) : false;
+  const bothDone = sister ? (isDayComplete(user, currentDay) && sisDone) : true;
 
   let headline, sub;
-  if (!bothDone) {
+  if (!sister) {
+    // Salahuddin solo celebration
+    headline = `Brilliant, ${user}! You finished Day ${currentDay}! 🦖`;
+    sub = `You scored ${my} out of ${dayMax}. Dino-mite work — onwards to the next adventure!`;
+  } else if (!bothDone) {
     headline = `Brilliant, ${user}! You finished Day ${currentDay}! 🎉`;
     sub = `Waiting for ${sister} to catch up…`;
   } else if (my > sis) {
@@ -2640,28 +2745,39 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
         </div>
       </div>
 
-      {/* Score comparison */}
-      <div className="grid sm:grid-cols-2 gap-4 mt-6">
-        <div className={`rounded-3xl p-5 kid-shadow ${me.gradientSoft}`}>
-          <div className="flex items-center gap-3 mb-2">
-            <Mascot who={user} mood="happy" size={44} />
-            <div className={`${me.font} text-2xl font-bold ${me.text}`}>{user}</div>
+      {/* Score comparison — only for Ava/Layla (Salahuddin has no sister to compare with) */}
+      {sister ? (
+        <div className="grid sm:grid-cols-2 gap-4 mt-6">
+          <div className={`rounded-3xl p-5 kid-shadow ${me.gradientSoft}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <Mascot who={user} mood="happy" size={44} />
+              <div className={`${me.font} text-2xl font-bold ${me.text}`}>{user}</div>
+            </div>
+            <div className="font-display text-5xl font-bold text-gray-800">{my}<span className="text-xl text-gray-400"> / {dayMax}</span></div>
+          </div>
+          <div className={`rounded-3xl p-5 kid-shadow ${them.gradientSoft}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <Mascot who={sister} mood="happy" size={44} />
+              <div className={`${them.font} text-2xl font-bold ${them.text}`}>{sister}</div>
+            </div>
+            <div className="font-display text-5xl font-bold text-gray-800">{sis}<span className="text-xl text-gray-400"> / {dayMax}</span></div>
+            {!sisDone && <div className="text-gray-500 text-sm mt-1">Still playing…</div>}
+          </div>
+        </div>
+      ) : (
+        <div className={`rounded-3xl p-6 kid-shadow ${me.gradientSoft} mt-6 text-center`}>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Mascot who={user} mood="happy" size={54} />
+            <div className={`${me.font} text-3xl font-bold ${me.text}`}>{user}</div>
           </div>
           <div className="font-display text-5xl font-bold text-gray-800">{my}<span className="text-xl text-gray-400"> / {dayMax}</span></div>
+          <div className="text-gray-600 text-sm mt-2">Total points today</div>
         </div>
-        <div className={`rounded-3xl p-5 kid-shadow ${them.gradientSoft}`}>
-          <div className="flex items-center gap-3 mb-2">
-            <Mascot who={sister} mood="happy" size={44} />
-            <div className={`${them.font} text-2xl font-bold ${them.text}`}>{sister}</div>
-          </div>
-          <div className="font-display text-5xl font-bold text-gray-800">{sis}<span className="text-xl text-gray-400"> / {dayMax}</span></div>
-          {!isDayComplete(sister, currentDay) && <div className="text-gray-500 text-sm mt-1">Still playing…</div>}
-        </div>
-      </div>
+      )}
 
-      <button onClick={() => { sfx.pop(); setScreen('scoreboard'); }}
+      <button onClick={() => { sfx.pop(); setScreen('leaderboard'); }}
         className="mt-6 w-full pressable bg-white kid-shadow rounded-2xl p-4 font-display text-lg text-gray-700 flex items-center justify-center gap-2">
-        <Trophy className="w-5 h-5 text-amber-500" /> See full scoreboard →
+        <Trophy className="w-5 h-5 text-amber-500" /> See leaderboard →
       </button>
     </div>
   );
@@ -2670,7 +2786,7 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
 /* ============================================================
    SCOREBOARD
    ============================================================ */
-function Scoreboard({ progress, currentDay, setScreen }) {
+function Leaderboard({ progress, currentDay, setScreen }) {
   const activities = [
     { id: 'spelling',  emoji: '🔊', outOf: 10 },
     { id: 'vocab',     emoji: '📚', outOf: 20 },
@@ -2681,21 +2797,29 @@ function Scoreboard({ progress, currentDay, setScreen }) {
     { id: 'geography', emoji: '🌍', outOf: 10 },
     { id: 'science',   emoji: '🔬', outOf: 10 }
   ];
-  // Base completion check still uses the original 5 — subjects are bonus
   const baseCompletion = ['spelling','vocab','writing','math','reading'];
-  const avaTotal = totalPoints(progress.Ava);
-  const laylaTotal = totalPoints(progress.Layla);
-  const leader = avaTotal === laylaTotal ? null : (avaTotal > laylaTotal ? 'Ava' : 'Layla');
 
+  // Rankings by total points across all days
+  const rankings = NAMES.map(name => ({
+    name,
+    total: totalPoints(progress[name])
+  })).sort((a, b) => b.total - a.total);
+  const topTotal = rankings[0]?.total || 0;
+
+  // Per-day table — include days where ANYONE has progress (or current day)
+  const maxDay = Math.max(currentDay, 1);
   const perDay = [];
-  for (let d = 1; d <= Math.max(currentDay, 1); d++) {
-    const a = progress.Ava[`day${d}`] || {};
-    const l = progress.Layla[`day${d}`] || {};
-    const aSum = dayPoints(a, activities);
-    const lSum = dayPoints(l, activities);
-    const aDone = baseCompletion.every(id => a[id] !== undefined);
-    const lDone = baseCompletion.every(id => l[id] !== undefined);
-    if (aDone || lDone || d === currentDay) perDay.push({ d, a, l, aSum, lSum, aDone, lDone });
+  for (let d = 1; d <= maxDay; d++) {
+    const row = { d };
+    let anyStarted = false;
+    NAMES.forEach(name => {
+      const data = progress[name][`day${d}`] || {};
+      const sum = dayPoints(data, activities);
+      const done = baseCompletion.every(id => data[id] !== undefined);
+      row[name] = { data, sum, done };
+      if (sum > 0 || done) anyStarted = true;
+    });
+    if (anyStarted || d === currentDay) perDay.push(row);
   }
 
   return (
@@ -2704,64 +2828,90 @@ function Scoreboard({ progress, currentDay, setScreen }) {
         <button onClick={() => { sfx.pop(); setScreen('home'); }} className="pressable bg-white kid-shadow rounded-2xl px-4 py-3 flex items-center gap-2 text-gray-700 font-semibold">
           <ArrowLeft className="w-5 h-5" /> Home
         </button>
-        <div className="font-display text-3xl md:text-4xl font-bold text-gray-800 flex items-center gap-2"><Trophy className="w-8 h-8 text-amber-500" /> Scoreboard</div>
+        <div className="font-display text-3xl md:text-4xl font-bold text-gray-800 flex items-center gap-2"><Trophy className="w-8 h-8 text-amber-500" /> Leaderboard</div>
         <div className="w-[88px]" />
       </div>
-      <div className="grid md:grid-cols-2 gap-5 mb-6">
-        {NAMES.map(n => {
-          const t = THEME[n];
-          const total = n === 'Ava' ? avaTotal : laylaTotal;
-          const isLeader = leader === n;
+
+      {/* Top cards — sorted by total points, leader gets a crown */}
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
+        {rankings.map((r, idx) => {
+          const t = THEME[r.name];
+          const isLeader = r.total === topTotal && topTotal > 0;
           return (
-            <div key={n} className={`relative overflow-hidden rounded-[2rem] p-6 kid-shadow ${t.gradient} text-white`}>
-              {isLeader && (<div className="absolute top-4 right-4 bg-white text-amber-700 rounded-full px-3 py-1 text-sm font-display font-bold flex items-center gap-1 shadow-lg"><Crown className="w-4 h-4" /> Leading</div>)}
-              <Mascot who={n} mood="idle" size={80} />
-              <div className={`${t.font} text-3xl font-bold mt-2`}>{n}</div>
-              <div className="text-sm opacity-90">{t.worldName}</div>
-              <div className="font-display text-6xl font-bold mt-2">{total}</div>
-              <div className="opacity-90">total points</div>
+            <div key={r.name} className={`relative overflow-hidden rounded-[2rem] p-5 kid-shadow ${t.gradient} text-white`}>
+              {isLeader && (
+                <div className="absolute top-3 right-3 bg-white text-amber-700 rounded-full px-3 py-1 text-xs font-display font-bold flex items-center gap-1 shadow-lg">
+                  <Crown className="w-4 h-4" /> Leading
+                </div>
+              )}
+              <div className="flex items-center gap-3 mb-2">
+                <Mascot who={r.name} mood="idle" size={64} />
+                <div>
+                  <div className={`${t.font} text-2xl font-bold`}>{r.name}</div>
+                  <div className="text-xs opacity-90">{t.worldName}</div>
+                </div>
+              </div>
+              <div className="font-display text-5xl font-bold mt-2">{r.total}</div>
+              <div className="opacity-90 text-sm">total points · rank #{idx + 1}</div>
             </div>
           );
         })}
       </div>
+
+      {/* Day-by-day table */}
       <div className="bg-white kid-shadow rounded-[2rem] p-5 md:p-7">
         <div className="font-display text-2xl font-bold text-gray-800 mb-4">Day by day</div>
-        <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 md:gap-4 items-center text-sm">
-          <div className="font-display text-gray-500 px-2">Day</div>
-          <div className={`font-display px-2 text-center ava-text`}>🐶 Ava</div>
-          <div className={`font-display px-2 text-center layla-text`}>⚽ Layla</div>
-          <div className="font-display text-gray-500 px-2 text-right">Winner</div>
-          {perDay.length === 0 && (<div className="col-span-4 text-center text-gray-400 py-6">No days completed yet — get started!</div>)}
-          {perDay.map(row => {
-            const winner = row.aSum === row.lSum ? null : (row.aSum > row.lSum ? 'Ava' : 'Layla');
-            const bothDone = row.aDone && row.lDone;
-            return (
-              <React.Fragment key={row.d}>
-                <div className="font-display font-bold text-gray-700 px-2 py-3 md:text-lg">#{row.d}</div>
-                <ScoreCell data={row.a} sum={row.aSum} done={row.aDone} color="ava" activities={activities} />
-                <ScoreCell data={row.l} sum={row.lSum} done={row.lDone} color="layla" activities={activities} />
-                <div className="px-2 py-3 text-right">
-                  {bothDone ? (winner === null ? <span className="text-gray-500 font-semibold">Tie</span>
-                    : <span className={`font-display font-bold flex items-center justify-end gap-1 ${winner === 'Ava' ? 'ava-text' : 'layla-text'}`}><Crown className="w-4 h-4" /> {winner}</span>
-                  ) : (<span className="text-gray-400 text-xs">In progress</span>)}
+        {perDay.length === 0 && (<div className="text-center text-gray-400 py-6">No days completed yet — get started!</div>)}
+        {perDay.length > 0 && (
+          <div className="space-y-3">
+            {perDay.map(row => {
+              // Determine winner(s) for this day among those who completed it
+              const completedPlayers = NAMES.filter(n => row[n].done);
+              const topScoreToday = Math.max(...NAMES.map(n => row[n].sum));
+              const winners = completedPlayers.filter(n => row[n].sum === topScoreToday && topScoreToday > 0);
+              return (
+                <div key={row.d} className="border-t pt-3 first:border-t-0 first:pt-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-display font-bold text-gray-700 text-lg">Day {row.d}</div>
+                    {winners.length === 1 && completedPlayers.length > 1 && (
+                      <div className={`font-display font-bold flex items-center gap-1 text-sm ${THEME[winners[0]].text}`}>
+                        <Crown className="w-4 h-4" /> {winners[0]} wins
+                      </div>
+                    )}
+                    {winners.length > 1 && (
+                      <div className="font-semibold text-gray-500 text-sm">Tied: {winners.join(' & ')}</div>
+                    )}
+                  </div>
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    {NAMES.map(name => (
+                      <LeaderCell key={name} name={name} data={row[name].data} sum={row[name].sum} done={row[name].done} activities={activities} />
+                    ))}
+                  </div>
                 </div>
-              </React.Fragment>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 }
-function ScoreCell({ data, sum, done, color, activities }) {
-  const cls = color === 'ava' ? 'bg-pink-50 text-pink-800' : 'bg-green-50 text-green-800';
+
+function LeaderCell({ name, data, sum, done, activities }) {
+  const t = THEME[name];
+  const bgCls = name === 'Ava' ? 'bg-pink-50 text-pink-800'
+             : name === 'Layla' ? 'bg-green-50 text-green-800'
+             : 'bg-orange-50 text-orange-800';
   return (
-    <div className={`rounded-xl px-3 py-2 ${cls}`}>
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs space-x-1 truncate">
-          {activities.map(a => <span key={a.id}>{a.emoji}{data[a.id] ?? '–'}</span>)}
+    <div className={`rounded-xl px-3 py-2 ${bgCls}`}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-display font-bold flex items-center gap-1">
+          <span className="text-base">{t.emoji}</span> {name}
         </span>
-        <span className="font-display font-bold text-lg flex-shrink-0">{sum}{done && ' ✓'}</span>
+        <span className="font-display font-bold text-lg">{sum}{done && ' ✓'}</span>
+      </div>
+      <div className="text-xs space-x-1 truncate opacity-80">
+        {activities.map(a => <span key={a.id}>{a.emoji}{data[a.id] ?? '–'}</span>)}
       </div>
     </div>
   );
