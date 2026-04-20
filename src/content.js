@@ -1,28 +1,129 @@
 // Static content banks. Deterministic: both sisters see the same content on the same day.
 
+// --- New lesson imports for v3 (history, geography, science) ---
+import { HISTORY_TOPICS, HISTORY_LESSONS, HISTORY_BRIEFS } from './lessons/history.js';
+import { GEOGRAPHY_TOPICS, GEOGRAPHY_LESSONS, GEOGRAPHY_BRIEFS } from './lessons/geography.js';
+import { SCIENCE_TOPICS, SCIENCE_LESSONS, SCIENCE_BRIEFS } from './lessons/science.js';
+
 export const TOTAL_DAYS = 60;
+
+/* ==========================================================================
+   v3: LESSON SUBJECT ROTATION
+   Day-of-week determines which subject lesson appears on the home screen.
+   0=Sunday(off), 1=Mon history, 2=Tue geography, 3=Wed science,
+   4=Thu history, 5=Fri geography, 6=Sat science.
+   ========================================================================== */
+
+// Returns the subject key for a given JS Date (or null on Sundays)
+export function lessonSubjectForDate(date = new Date()) {
+  const dow = date.getDay(); // 0=Sun .. 6=Sat
+  const map = {
+    0: null,          // Sunday — rest day, no lesson activity
+    1: 'history',     // Monday
+    2: 'geography',   // Tuesday
+    3: 'science',     // Wednesday
+    4: 'history',     // Thursday
+    5: 'geography',   // Friday
+    6: 'science'      // Saturday
+  };
+  return map[dow];
+}
+
+// Human-friendly subject metadata
+export const SUBJECT_META = {
+  history:   { name: 'History',   emoji: '🏛️', color: '#b45309', gradFrom: '#fef3c7', gradTo: '#fde68a', accent: '#92400e' },
+  geography: { name: 'Geography', emoji: '🌍', color: '#0369a1', gradFrom: '#dbeafe', gradTo: '#bae6fd', accent: '#075985' },
+  science:   { name: 'Science',   emoji: '🔬', color: '#6d28d9', gradFrom: '#ede9fe', gradTo: '#ddd6fe', accent: '#5b21b6' }
+};
+
+// Lesson topic/brief accessors
+export function lessonTopicFor(subject, day) {
+  const d = Math.max(1, Math.min(TOTAL_DAYS, day));
+  if (subject === 'history')   return HISTORY_TOPICS[d-1];
+  if (subject === 'geography') return GEOGRAPHY_TOPICS[d-1];
+  if (subject === 'science')   return SCIENCE_TOPICS[d-1];
+  return null;
+}
+
+export function hardcodedLessonFor(subject, day) {
+  if (subject === 'history')   return HISTORY_LESSONS[day] || null;
+  if (subject === 'geography') return GEOGRAPHY_LESSONS[day] || null;
+  if (subject === 'science')   return SCIENCE_LESSONS[day] || null;
+  return null;
+}
+
+export function lessonBriefFor(subject, day) {
+  if (subject === 'history')   return HISTORY_BRIEFS[day] || '';
+  if (subject === 'geography') return GEOGRAPHY_BRIEFS[day] || '';
+  if (subject === 'science')   return SCIENCE_BRIEFS[day] || '';
+  return '';
+}
+
+// A child's current target year (UK curriculum) for content tuning.
+// Year 2 at start → Year 7 at end over 60 days.
+export function targetYearFor(day) {
+  if (day <= 10) return 2;
+  if (day <= 20) return 3;
+  if (day <= 30) return 4;
+  if (day <= 40) return 5;
+  if (day <= 50) return 6;
+  return 7;
+}
 
 /* ---------------- SPELLING (tiered, cycles as needed) ---------------- */
 export const SPELLING_BANK = [
-  // Tier 1 (days 1-15)
-  'because','friend','people','enough','through','family','children','together','different','important',
+  // ============================================================
+  // Tier 1 (days 1-15) — Year 2 core
+  // ============================================================
+  'because','friend','people','enough','through','family','children','together','important',
   'remember','morning','evening','favourite','brother','sister','garden','another','sometimes','answer',
-  'beautiful','between','breakfast','country','thought','laugh','listen','neighbour','special','surprise',
-  'treasure','weather','wonder','island','library','science','picture','quickly','castle','double',
-  // Tier 2 (days 16-30)
+  'beautiful','between','breakfast','country','thought','laugh','listen','neighbour','surprise',
+  'treasure','weather','wonder','library','science','picture','quickly','castle','double',
+  'bicycle','daughter','brought','caught','perhaps','without','before','after','often','every',
+  'should','would','could','which','women','water','write','wrote','written','above',
+  'money','many','only','very','much','most','half','whole','until','while',
+  'always','early','late','never','asleep','awake','broken','clean','dirty','empty',
+  'flower','teacher','school','number','office','reply','simple','certain','paper','visit',
+
+  // ============================================================
+  // Tier 2 (days 16-30) — Year 3/4
+  // ============================================================
   'chocolate','whisper','suddenly','imagine','delicious','wonderful','adventure','dangerous','mysterious','curious',
   'enormous','fantastic','magnificent','peculiar','sparkle','giggle','forgotten','invisible','mountain','squirrel',
   'elephant','umbrella','butterfly','pineapple','strawberry','vegetable','temperature','afternoon','kitchen','dinosaur',
-  'celebrate','calendar','creature','discover','disappear','electric','excellent','exercise','explore','glittering',
-  // Tier 3 (days 31-45)
-  'happiness','hospital','knowledge','language','necessary','orchestra','parachute','quarrel','quicksand','scissors',
-  'rhythm','rhinoceros','telescope','volcano','wilderness','xylophone','yesterday','ancient','ceremony','chemical',
-  'conscience','courageous','definitely','effective','familiar','gorgeous','hurricane','identical','jealous','laboratory',
+  'celebrate','calendar','creature','discover','disappear','electric','exercise','explore','glittering',
+  'amazing','believe','different','earlier','exciting','famous','forward','happened','history','island',
+  'learned','machine','natural','promise','recent','special','station','stomach','strange','ordinary',
+  'popular','possible','reasonable','therefore','thousand','tonight','travelling',
+  'whistle','thirsty','twelve','journey','knight','kingdom','midnight','pillow','piano','pretend',
+  'actually','business','breathe','centre','complete','continue','decide','describe','naughty','peaceful',
+
+  // ============================================================
+  // Tier 3 (days 31-45) — Year 5
+  // ============================================================
+  'happiness','hospital','knowledge','orchestra','parachute','quarrel','quicksand','scissors',
+  'rhythm','rhinoceros','telescope','volcano','wilderness','xylophone','yesterday','ceremony','chemical',
+  'courageous','definitely','effective','gorgeous','hurricane','identical','jealous','laboratory',
   'microphone','nightmare','obstacle','photograph','questionnaire','rehearse','satellite','sincere','strategy','tomorrow',
-  // Tier 4 (days 46-60)
-  'acquaintance','camouflage','conscientious','embarrass','fluorescent','guarantee','hypothesis','illuminate','jeopardy','kaleidoscope',
+  'accident','accompany','achieve','aggressive','amateur','ancient','apparent','appreciate','approach','argument',
+  'arrange','attached','available','awkward','bargain','bruise','cemetery','committee','community','convenience',
+  'correspond','desperate','determined','develop','dictionary','disastrous','embarrass','environment','equipment',
+  'especially','exaggerate','excellent','existence','experience','explanation','forty','frequently','government',
+  'language','necessary','conscience','familiar',
+
+  // ============================================================
+  // Tier 4 (days 46-60) — Year 6/7 + stretch words
+  // ============================================================
+  'acquaintance','camouflage','conscientious','fluorescent','guarantee','hypothesis','illuminate','jeopardy','kaleidoscope',
   'labyrinth','miscellaneous','noticeable','perseverance','reminiscent','silhouette','thorough','unanimous','vulnerable','whimsical',
-  'exquisite','poignant','quintessential','serendipity','magnificence','phenomenon','extraordinary','responsibility','opportunity','celebration'
+  'exquisite','poignant','quintessential','serendipity','magnificence','phenomenon','extraordinary','responsibility','opportunity','celebration',
+  'accommodate','accompanied','achievement','category','communicate','conscious','controversy','criticise','curiosity',
+  'definite','eighth','equipped','foreign','harass','hindrance','identity','immediately',
+  'individual','interfere','interrupt','leisure','lightning','marvellous','mischievous','muscle',
+  'occasionally','occupy','occurred','parallel','persuade','possession','privilege',
+  'profession','programme','pronunciation','queue','recognise','recommend','relevant','restaurant',
+  'rhyme','sacrifice','secretary','shoulder','signature','soldier','symbol','system',
+  'variety','vehicle','yacht','zoo'
 ];
 
 /* ---------------- VOCAB — word, definition, cloze sentence ----------------
