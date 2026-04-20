@@ -169,3 +169,57 @@ input, textarea { user-select: text; -webkit-user-select: text; }
   background: rgba(255,255,255,0.5);
   display: inline-block;
 }
+
+/* ============================================================
+   v3: Lesson animations (SVG container + keyframes)
+   ============================================================ */
+.lesson-animation {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+}
+.anim-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Fire flame flicker */
+@keyframes flame-flicker {
+  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 1; }
+  25% { transform: scaleY(1.08) scaleX(0.95); opacity: 0.95; }
+  50% { transform: scaleY(0.95) scaleX(1.05); opacity: 1; }
+  75% { transform: scaleY(1.05) scaleX(0.98); opacity: 0.92; }
+}
+@keyframes spark-rise {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-80px); opacity: 0; }
+}
+@keyframes eruption {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-25px) scale(1.1); opacity: 0.8; }
+}
+@keyframes boat-rock {
+  0%, 100% { transform: translate(200px, 180px) rotate(-2deg); }
+  50% { transform: translate(200px, 180px) rotate(2deg); }
+}
+@keyframes compass-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes aurora-sway {
+  0%, 100% { transform: translateX(0) scaleY(1); }
+  50% { transform: translateX(15px) scaleY(1.05); }
+}
+
+/* Shake animation for spelling learn-phase input on wrong attempt */
+@keyframes shake-horiz {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+  20%, 40%, 60%, 80% { transform: translateX(8px); }
+}
+.shake { animation: shake-horiz 0.45s cubic-bezier(.36,.07,.19,.97) both; }
