@@ -2062,48 +2062,125 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
      - Phase 'quiz': 10-question MCQ, like Reading comprehension
      - Phase 'done': show ResultsCard, record subject score
    ============================================================ */
-function wikimediaImageUrl(query) {
-  // Use Wikipedia's image lookup for reliability — returns a thumbnail
-  const q = encodeURIComponent((query || '').replace(/\s+/g, '_'));
-  return `https://en.wikipedia.org/w/api.php?action=query&titles=${q}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
+/* ============================================================
+   v3.3: Image fetch pipeline for lesson slides.
+   Fallback chain:
+     1. imageFallback (curated URL on the slide) - highest priority
+     2. Wikipedia pageimages (exact page title lookup)
+     3. Wikipedia search -> pageimages (fuzzy match)
+     4. Wikimedia Commons search (broadest, always succeeds for common topics)
+     5. Themed placeholder (no broken image icons)
+   ============================================================ */
+
+async function tryWikipediaPage(query) {
+  try {
+    const q = encodeURIComponent((query || '').trim().replace(/\s+/g, '_'));
+    const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${q}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const json = await r.json();
+    const pages = json && json.query && json.query.pages;
+    const first = pages && Object.values(pages)[0];
+    const thumb = first && first.thumbnail && first.thumbnail.source;
+    return thumb || null;
+  } catch (e) { return null; }
 }
-function unsplashFallback(query) {
-  // Unsplash Source is a public fallback that accepts any keyword
-  const q = encodeURIComponent(query || 'education');
-  return `https://source.unsplash.com/800x500/?${q}`;
+
+async function tryWikipediaSearch(query) {
+  try {
+    // First search Wikipedia for the query, then fetch pageimages for top result
+    const q = encodeURIComponent(query || '');
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${q}&srlimit=1&format=json&origin=*`;
+    const sr = await fetch(searchUrl);
+    if (!sr.ok) return null;
+    const sjson = await sr.json();
+    const topHit = sjson && sjson.query && sjson.query.search && sjson.query.search[0];
+    if (!topHit) return null;
+    const title = topHit.title;
+    const qTitle = encodeURIComponent(title.replace(/\s+/g, '_'));
+    const piUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${qTitle}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
+    const pr = await fetch(piUrl);
+    if (!pr.ok) return null;
+    const pjson = await pr.json();
+    const pages = pjson && pjson.query && pjson.query.pages;
+    const first = pages && Object.values(pages)[0];
+    const thumb = first && first.thumbnail && first.thumbnail.source;
+    return thumb || null;
+  } catch (e) { return null; }
+}
+
+async function tryCommonsSearch(query) {
+  try {
+    // Wikimedia Commons image search via generator=search + prop=imageinfo
+    const q = encodeURIComponent(query || '');
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${q}&gsrlimit=1&gsrnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=800&format=json&origin=*`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const json = await r.json();
+    const pages = json && json.query && json.query.pages;
+    if (!pages) return null;
+    const first = Object.values(pages)[0];
+    const info = first && first.imageinfo && first.imageinfo[0];
+    // Prefer the scaled thumb, fall back to the original URL
+    return (info && (info.thumburl || info.url)) || null;
+  } catch (e) { return null; }
 }
 
 function SlideImage({ slide }) {
-  const [url, setUrl] = useState(slide.imageFallback || null);
+  const [url, setUrl] = useState(null);
+  const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+
   useEffect(() => {
-    // If we have a reliable fallback URL, use it directly
-    if (slide.imageFallback) { setUrl(slide.imageFallback); return; }
-    if (!slide.imageQuery) { setUrl(unsplashFallback('learning')); return; }
-    // Try Wikipedia first
     let cancelled = false;
-    fetch(wikimediaImageUrl(slide.imageQuery))
-      .then(r => r.ok ? r.json() : null)
-      .then(json => {
-        if (cancelled) return;
-        try {
-          const pages = json && json.query && json.query.pages;
-          const first = pages && Object.values(pages)[0];
-          const thumb = first && first.thumbnail && first.thumbnail.source;
-          if (thumb) setUrl(thumb);
-          else setUrl(unsplashFallback(slide.imageQuery));
-        } catch (e) {
-          setUrl(unsplashFallback(slide.imageQuery));
-        }
-      })
-      .catch(() => { if (!cancelled) setUrl(unsplashFallback(slide.imageQuery)); });
+    setReady(false); setFailed(false); setUrl(null);
+
+    async function go() {
+      // 1. Curated fallback URL if present
+      if (slide.imageFallback) {
+        if (!cancelled) { setUrl(slide.imageFallback); setReady(true); }
+        return;
+      }
+      const q = slide.imageQuery;
+      if (!q) { if (!cancelled) { setReady(true); setFailed(true); } return; }
+
+      // 2. Wikipedia direct page
+      const a = await tryWikipediaPage(q);
+      if (cancelled) return;
+      if (a) { setUrl(a); setReady(true); return; }
+
+      // 3. Wikipedia search → pageimages
+      const b = await tryWikipediaSearch(q);
+      if (cancelled) return;
+      if (b) { setUrl(b); setReady(true); return; }
+
+      // 4. Wikimedia Commons search
+      const c = await tryCommonsSearch(q);
+      if (cancelled) return;
+      if (c) { setUrl(c); setReady(true); return; }
+
+      // 5. All failed — show placeholder
+      if (!cancelled) { setReady(true); setFailed(true); }
+    }
+    go();
     return () => { cancelled = true; };
   }, [slide.imageQuery, slide.imageFallback]);
 
-  if (failed || !url) {
+  // Placeholder (loading or all fallbacks failed) — themed and pleasant, not broken-image
+  if (!ready) {
     return (
-      <div className="w-full h-64 md:h-80 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-        <div className="text-6xl opacity-40">🖼️</div>
+      <div className="w-full h-64 md:h-80 rounded-3xl bg-gradient-to-br from-sky-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-6xl opacity-40 floaty">🖼️</div>
+      </div>
+    );
+  }
+  if (failed || !url) {
+    // Derive two nice initials for the placeholder
+    const label = (slide.title || slide.imageQuery || 'lesson').split(/\s+/).slice(0, 3).join(' ');
+    return (
+      <div className="w-full h-64 md:h-80 rounded-3xl bg-gradient-to-br from-indigo-100 via-sky-100 to-emerald-100 flex flex-col items-center justify-center p-6">
+        <div className="text-5xl mb-2">📚</div>
+        <div className="font-display text-xl text-gray-600 text-center max-w-md">{label}</div>
       </div>
     );
   }
@@ -2111,7 +2188,7 @@ function SlideImage({ slide }) {
     <div className="w-full rounded-3xl overflow-hidden bg-gray-100 kid-shadow">
       <img src={url} alt={slide.imageQuery || slide.title}
         className="w-full h-64 md:h-80 object-cover"
-        onError={() => { if (!failed) { setFailed(true); setUrl(unsplashFallback(slide.imageQuery || 'education')); } }}
+        onError={() => { if (!failed) { setFailed(true); } }}
       />
     </div>
   );
