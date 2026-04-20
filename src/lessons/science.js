@@ -103,6 +103,7 @@ export const SCIENCE_LESSONS = {
       { q: 'What starts most food chains?', options: ['Fire', 'The Sun', 'Water', 'Wind'], correct: 1, cheer: 'Solar power!' }
     ],
     hasVideo: true,
+    videoId: 'p15IrEuhYmo',
     bitesizeQuery: 'living things habitats ks2'
   },
 
@@ -135,7 +136,8 @@ export const SCIENCE_LESSONS = {
       { q: 'Burrs spread by...', options: ['Floating', 'Exploding', 'Sticking to animal fur', 'Bouncing'], correct: 2, cheer: 'Hitchhikers!' },
       { q: 'Why are plants so important?', options: ['Oxygen, food, materials', 'Only for flowers', 'Only for decoration', 'Not important'], correct: 0, cheer: 'Vital to life!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'D1Ymc311XS8',
     bitesizeQuery: 'plants growth photosynthesis ks2'
   },
 
@@ -169,6 +171,7 @@ export const SCIENCE_LESSONS = {
       { q: 'How often does skin replace itself?', options: ['Never', 'Once a year', 'Every month', 'Every 100 years'], correct: 2, cheer: 'New skin regularly!' }
     ],
     hasVideo: true,
+    videoId: '1r3ictYe2kY',
     bitesizeQuery: 'human body organs ks2'
   },
 
@@ -201,7 +204,8 @@ export const SCIENCE_LESSONS = {
       { q: 'Which body part is most sensitive to touch?', options: ['Back', 'Knee', 'Fingertips', 'Ear lobe'], correct: 2, cheer: 'Great for little things!' },
       { q: 'What is umami?', options: ['A kind of fish', 'A savoury taste', 'A colour', 'A sound'], correct: 1, cheer: 'The fifth taste!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'uW4Lyz52Q8w',
     bitesizeQuery: 'five senses human body'
   },
 
@@ -235,6 +239,7 @@ export const SCIENCE_LESSONS = {
       { q: 'What can we do about plastic pollution?', options: ['Ignore it', 'Recycle and use less', 'Only use plastic', 'Throw it in the sea'], correct: 1, cheer: 'We can help!' }
     ],
     hasVideo: true,
+    videoId: 'tGfLhPslEjQ',
     bitesizeQuery: 'materials properties ks1'
   },
 
@@ -267,7 +272,8 @@ export const SCIENCE_LESSONS = {
       { q: 'Is ice still H₂O?', options: ['No, it\'s different', 'Yes, same stuff different state', 'Only half', 'Not sure'], correct: 1, cheer: 'Same molecules!' },
       { q: 'What happens when you cool steam?', options: ['It disappears', 'Turns into water', 'Gets hotter', 'Becomes solid'], correct: 1, cheer: 'Condensation!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'wclY8F-UoTE',
     bitesizeQuery: 'solids liquids gases ks2'
   },
 
@@ -301,6 +307,7 @@ export const SCIENCE_LESSONS = {
       { q: 'Why does crumpled paper fall faster than flat paper?', options: ['It\'s heavier', 'Less air resistance', 'It\'s hotter', 'Magic'], correct: 1, cheer: 'Smaller surface!' }
     ],
     hasVideo: true,
+    videoId: 'rfeVlNL7d9U',
     bitesizeQuery: 'forces push pull gravity'
   },
 
@@ -333,7 +340,8 @@ export const SCIENCE_LESSONS = {
       { q: 'What does Earth\'s magnetism do?', options: ['Nothing', 'Protects us and helps compasses', 'Makes the sky blue', 'Causes rain'], correct: 1, cheer: 'Very useful!' },
       { q: 'What does a compass point to?', options: ['South', 'North (Earth\'s magnetic field)', 'Up', 'The Moon'], correct: 1, cheer: 'Navigation tool!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'yXCeuSiTOug',
     bitesizeQuery: 'magnets magnetism ks2'
   },
 
@@ -367,6 +375,7 @@ export const SCIENCE_LESSONS = {
       { q: 'How long does Sun\'s light take to reach Earth?', options: ['Instantly', '8 minutes', '1 hour', '1 day'], correct: 1, cheer: 'Yes!' }
     ],
     hasVideo: true,
+    videoId: 'lOIGOT88Aqc',
     bitesizeQuery: 'light shadows ks2'
   },
 
@@ -399,7 +408,8 @@ export const SCIENCE_LESSONS = {
       { q: 'How many tiny bones are in the ear?', options: ['1', '3', '10', '50'], correct: 1, cheer: 'Smallest in body!' },
       { q: 'What do the hair cells in the ear do?', options: ['Make hair grow', 'Turn vibrations into nerve signals', 'Keep water out', 'Nothing'], correct: 1, cheer: 'Sending to brain!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'gdGyvGPZ1G0',
     bitesizeQuery: 'sound vibrations hearing'
   },
 
@@ -433,6 +443,7 @@ export const SCIENCE_LESSONS = {
       { q: 'What is static electricity?', options: ['Moving cars', 'Electrons jumping between things', 'Running water', 'Wind'], correct: 1, cheer: 'Little zap!' }
     ],
     hasVideo: true,
+    videoId: 'HOFp8bHTN30',
     bitesizeQuery: 'electricity circuits ks2'
   },
 
@@ -465,7 +476,8 @@ export const SCIENCE_LESSONS = {
       { q: 'Is Pluto a planet?', options: ['Yes still', 'No, dwarf planet since 2006', 'Never was', 'Only at night'], correct: 1, cheer: 'Demoted!' },
       { q: 'Our galaxy is called...', options: ['Andromeda', 'The Milky Way', 'Orion', 'Cosmo'], correct: 1, cheer: 'Our galaxy!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'w36yxLgwUOc',
     bitesizeQuery: 'solar system planets ks2'
   },
 
@@ -499,6 +511,7 @@ export const SCIENCE_LESSONS = {
       { q: 'What is a comet?', options: ['A star', 'A dirty snowball orbiting the Sun', 'A plane', 'A planet'], correct: 1, cheer: 'Icy visitor!' }
     ],
     hasVideo: true,
+    videoId: 'BQvo7vyCmuE',
     bitesizeQuery: 'moon stars space ks2'
   },
 
@@ -531,7 +544,8 @@ export const SCIENCE_LESSONS = {
       { q: 'Which is NOT a fossil fuel?', options: ['Coal', 'Oil', 'Gas', 'Wind'], correct: 3, cheer: 'Wind is free and clean!' },
       { q: 'Why are we moving away from fossil fuels?', options: ['They cost too much', 'They cause climate change', 'They\'re pretty', 'They smell bad'], correct: 1, cheer: 'For the planet!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'CeuYx-AbZdo',
     bitesizeQuery: 'rocks fossils ks2'
   },
 
@@ -565,6 +579,7 @@ export const SCIENCE_LESSONS = {
       { q: 'What is a woolly mammoth?', options: ['A sheep', 'A hairy ice age elephant', 'A dinosaur', 'A yeti'], correct: 1, cheer: 'Extinct only 4,000 years ago!' }
     ],
     hasVideo: true,
+    videoId: 'VNNvCNOh_Bg',
     bitesizeQuery: 'dinosaurs extinction fossils'
   }
 };
