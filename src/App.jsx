@@ -592,12 +592,19 @@ export default function App() {
     const p = progress[name]?.[`day${d}`];
     return p && p.spelling !== undefined && p.vocab !== undefined && p.writing !== undefined && p.math !== undefined && p.reading !== undefined;
   };
-  // Each user's currentDay only depends on their OWN progress.
-  // Salahuddin's completion never affects the sisters; the sisters never affect Salahuddin.
+  // Day progression rules:
+  // - Ava and Layla progress together — Day N+1 unlocks only when BOTH finish Day N
+  //   (they compete side-by-side, so staying in sync matters for them)
+  // - Salahuddin progresses independently — his Day N+1 unlocks when HE finishes Day N
+  //   (so if he loses interest, he never holds back the sisters, and they never hold him back)
   const currentDay = useMemo(() => {
     if (!user) return 1;
     let d = 1;
-    while (d < TOTAL_DAYS && isDayComplete(user, d)) d++;
+    if (user === 'Salahuddin') {
+      while (d < TOTAL_DAYS && isDayComplete(user, d)) d++;
+    } else {
+      while (d < TOTAL_DAYS && isDayComplete('Ava', d) && isDayComplete('Layla', d)) d++;
+    }
     return d;
   // eslint-disable-next-line
   }, [progress, user]);
@@ -942,11 +949,16 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
         </div>
       )}
 
-      {/* Footer status */}
+      {/* Footer status — depends on pairing rule */}
       <div className="rounded-3xl p-5 bg-white kid-shadow text-center">
         {!myAllDone && (<div className="font-display text-xl text-gray-700">Finish all {activities.length} activities to unlock Day {currentDay + 1}! 🚀</div>)}
-        {myAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">Day {currentDay} complete! 🎉 Day {currentDay + 1} is unlocking…</div>)}
-        {currentDay >= TOTAL_DAYS && myAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're a superstar! 🏆</div>)}
+        {/* Sisters wait for each other */}
+        {sister && myAllDone && !sisAllDone && (<div className="font-display text-xl text-gray-700">Amazing work, {user}! 🎉 Waiting for <span className={them.text}>{sister}</span> to finish Day {currentDay}…</div>)}
+        {sister && myAllDone && sisAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">You both finished Day {currentDay}! Day {currentDay + 1} is unlocking… 🎊</div>)}
+        {sister && currentDay >= TOTAL_DAYS && myAllDone && sisAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're superstars! 🏆</div>)}
+        {/* Salahuddin goes solo */}
+        {!sister && myAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">Day {currentDay} complete! 🎉 Day {currentDay + 1} is unlocking…</div>)}
+        {!sister && currentDay >= TOTAL_DAYS && myAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're a superstar! 🏆</div>)}
       </div>
     </div>
   );
@@ -2455,7 +2467,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
         setQuizStep(s => s + 1);
       } else {
         const score = newResults.filter(r => r.right).length;
-        saveActivity(subject, score, { subject, day: currentDay, topic: lesson.title });
+        saveActivity(currentDay, subject, score, { subject, topic: lesson.title });
         R.clear();
         setPhase('done');
       }
