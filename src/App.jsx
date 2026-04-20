@@ -2291,7 +2291,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
     if (picked !== null) return;
     const q = lesson.questions[quizStep];
     const isRight = i === q.correct;
-    if (isRight) sfx.success(); else sfx.oops();
+    if (isRight) sfx.ding(); else sfx.aww();
     setPicked(i);
     setShowCheer(true);
     const newResults = [...quizResults, { q: q.q, your: i, correct: q.correct, right: isRight, cheer: q.cheer }];
