@@ -181,49 +181,77 @@ function getMathProblems(day) {
 /* --------- Speech --------- */
 
 // Pick the best available voice once and memoise, because getVoices() is slow
-// and voice list changes across platforms. Prefer high-quality UK/US female voices.
+// and voice list changes across platforms. Prefer high-quality UK female voices.
 let _cachedVoice = null;
-function pickBestVoice() {
-  if (_cachedVoice) return _cachedVoice;
+let _cachedSpellingVoice = null;
+
+// Voice names commonly shipped as female on iOS / macOS / Windows / Chrome.
+// Used as a fallback gender detector (speechSynthesis doesn't expose gender).
+const FEMALE_VOICE_NAMES = /(samantha|karen|serena|moira|kate|martha|nicky|fiona|tessa|victoria|allison|ava|susan|zoe|zira|hazel|catherine|linda|heather|kimberly|elsa|libby|sonia|aria|jenny|emma|nora|clara|amy|natasha|olivia|joanna|salli|ivy|kendra|kimberly|female)/i;
+const MALE_VOICE_NAMES = /(daniel|oliver|arthur|george|reed|fred|alex|aaron|tom|david|mark|ralph|james|male)/i;
+
+function scoreVoice(v, opts = {}) {
+  // Higher score = better. Negative = disqualified.
+  if (!v || !v.lang) return -Infinity;
+  let score = 0;
+  // Must be English
+  if (!/^en/i.test(v.lang)) return -Infinity;
+
+  // Language preference: en-GB > en-US > en-AU > other
+  if (/en.?GB/i.test(v.lang)) score += 30;
+  else if (/en.?US/i.test(v.lang)) score += 20;
+  else if (/en.?AU/i.test(v.lang)) score += 15;
+  else score += 5;
+
+  // Quality hints in the name
+  if (/premium|enhanced/i.test(v.name)) score += 50;
+  if (/siri/i.test(v.name)) score += 40;
+  if (/natural|neural|online/i.test(v.name)) score += 35;
+  if (/google uk/i.test(v.name)) score += 25;
+  if (/google us/i.test(v.name)) score += 15;
+
+  // Gender preference: strongly prefer female, penalise obvious male
+  if (FEMALE_VOICE_NAMES.test(v.name)) score += 40;
+  if (MALE_VOICE_NAMES.test(v.name)) score -= 100; // effectively excludes
+  if (/female/i.test(v.name)) score += 30;
+  if (/male/i.test(v.name) && !/female/i.test(v.name)) score -= 100;
+
+  // If it's a default platform voice, slight boost
+  if (v.default) score += 2;
+
+  // For spelling: extra boost to voices known to be very clear/articulate
+  if (opts.crispForSpelling) {
+    // Samantha (iOS) and Karen (AUS) are especially clear per-word
+    if (/^(samantha|karen|serena|kate)/i.test(v.name)) score += 25;
+    // US voices tend to articulate individual words more crisply
+    if (/en.?US/i.test(v.lang)) score += 10;
+  }
+
+  return score;
+}
+
+function pickBestVoice(opts = {}) {
+  const cacheKey = opts.crispForSpelling ? '_spelling' : '_default';
+  if (opts.crispForSpelling && _cachedSpellingVoice) return _cachedSpellingVoice;
+  if (!opts.crispForSpelling && _cachedVoice) return _cachedVoice;
   if (!window.speechSynthesis) return null;
   const voices = window.speechSynthesis.getVoices();
   if (!voices || voices.length === 0) return null;
 
-  // Voice quality tiers — each list is searched in order, best match wins.
-  // Scoring: prefer (1) explicitly-marked premium/enhanced, (2) Siri voices,
-  // (3) specific known-good named voices, (4) any en-GB female, (5) any en-GB, (6) any en.
-  const tests = [
-    // Tier 1: iOS/macOS premium voices — highest quality
-    v => /en/i.test(v.lang) && /premium|enhanced/i.test(v.name),
-    // Tier 2: iOS Siri voices — natural-sounding
-    v => /en/i.test(v.lang) && /siri/i.test(v.name),
-    // Tier 3: Microsoft neural voices (Windows)
-    v => /en/i.test(v.lang) && /(natural|neural|online)/i.test(v.name),
-    // Tier 4: Google UK English (Chrome) — clear and pleasant
-    v => /en.?GB/i.test(v.lang) && /google uk/i.test(v.name) && /female/i.test(v.name),
-    v => /en.?GB/i.test(v.lang) && /google uk/i.test(v.name),
-    // Tier 5: specific named high-quality voices (Samantha, Karen, Daniel, Serena, Moira)
-    v => /en.?GB/i.test(v.lang) && /^(kate|serena|moira|martha|nicky|daniel)/i.test(v.name),
-    v => /en/i.test(v.lang) && /^(samantha|karen|serena|moira)/i.test(v.name),
-    // Tier 6: any en-GB female
-    v => /en.?GB/i.test(v.lang) && /female/i.test(v.name),
-    // Tier 7: any en-GB
-    v => /en.?GB/i.test(v.lang),
-    // Tier 8: any en
-    v => /en/i.test(v.lang)
-  ];
-  for (const test of tests) {
-    const match = voices.find(test);
-    if (match) { _cachedVoice = match; return match; }
+  let best = null, bestScore = -Infinity;
+  for (const v of voices) {
+    const s = scoreVoice(v, opts);
+    if (s > bestScore) { bestScore = s; best = v; }
   }
-  _cachedVoice = voices[0];
-  return _cachedVoice;
+  if (opts.crispForSpelling) _cachedSpellingVoice = best;
+  else _cachedVoice = best;
+  return best;
 }
 
 // Prime voices on load — browsers often load the voice list asynchronously
 if (typeof window !== 'undefined' && window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => { _cachedVoice = null; };
-  setTimeout(() => { pickBestVoice(); }, 0);
+  window.speechSynthesis.onvoiceschanged = () => { _cachedVoice = null; _cachedSpellingVoice = null; };
+  setTimeout(() => { pickBestVoice(); pickBestVoice({ crispForSpelling: true }); }, 0);
 }
 
 function speak(text, opts = {}) {
@@ -234,7 +262,7 @@ function speak(text, opts = {}) {
     u.rate = opts.rate ?? 0.92;
     u.pitch = opts.pitch ?? 1.02;
     u.volume = 1;
-    const v = pickBestVoice();
+    const v = pickBestVoice({ crispForSpelling: opts.crispForSpelling });
     if (v) u.voice = v;
     if (opts.onend) u.onend = opts.onend;
     if (opts.onboundary) u.onboundary = opts.onboundary;
@@ -243,6 +271,31 @@ function speak(text, opts = {}) {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
     return u;
+  } catch (e) {}
+}
+
+// Dedicated speaker for spelling test words — clearer, sharper, slightly slower.
+// Two passes: the word → small pause → the word again, so kids have time to hear it.
+function speakWord(word) {
+  if (!word) return;
+  try {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const mkUtterance = (text, delayMs = 0) => {
+      setTimeout(() => {
+        if (!window.speechSynthesis) return;
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.78;     // slower — give each syllable room
+        u.pitch = 1.08;    // slightly higher — brighter, clearer for kids
+        u.volume = 1;
+        const v = pickBestVoice({ crispForSpelling: true });
+        if (v) u.voice = v;
+        window.speechSynthesis.speak(u);
+      }, delayMs);
+    };
+    // Say the word twice, so if a child misses the first pass they catch the second.
+    mkUtterance(word, 0);
+    mkUtterance(word, 1400);
   } catch (e) {}
 }
 function stopSpeaking() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
@@ -945,7 +998,7 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
     setScreen('home');
   }
 
-  useEffect(() => { const t = setTimeout(() => speak(words[step]), 400); return () => clearTimeout(t); }, [R.phase]);
+  useEffect(() => { const t = setTimeout(() => speakWord(words[step]), 400); return () => clearTimeout(t); }, [R.phase]);
   useEffect(() => {
     if (!done && !learnMode && !lastResult) { const t = setTimeout(() => inputRef.current && inputRef.current.focus(), 100); return () => clearTimeout(t); }
     if (learnMode) { const t = setTimeout(() => learnInputRef.current && learnInputRef.current.focus(), 100); return () => clearTimeout(t); }
@@ -974,7 +1027,7 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
     } else {
       setStep(step + 1);
       setInput('');
-      setTimeout(() => speak(words[step + 1]), 300);
+      setTimeout(() => speakWord(words[step + 1]), 300);
     }
   }
 
@@ -1006,7 +1059,7 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
     setLearnCorrectCount(0);
     setLearnMode(true);
     setLastResult(null);
-    setTimeout(() => speak(lastResult.word), 200);
+    setTimeout(() => speakWord(lastResult.word), 200);
   }
 
   function submitLearn(e) {
@@ -1026,7 +1079,7 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
           advanceOrFinish(results);
         }, 700);
       } else {
-        setTimeout(() => speak(learnWord), 200);
+        setTimeout(() => speakWord(learnWord), 200);
       }
     } else {
       sfx.aww();
@@ -1097,7 +1150,7 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
           </div>
 
           <div className="mb-4 flex justify-center">
-            <button onClick={() => { sfx.pop(); speak(learnWord); }} className="pressable bg-amber-500 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2">
+            <button onClick={() => { sfx.pop(); speakWord(learnWord); }} className="pressable bg-amber-500 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2">
               <Volume2 className="w-4 h-4" /> Hear it
             </button>
           </div>
@@ -1144,7 +1197,7 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
               <div className="font-display text-3xl md:text-4xl font-bold text-amber-900 tracking-wide">{lastResult.word}</div>
             </div>
           </div>
-          <button onClick={() => { sfx.pop(); speak(lastResult.word); }} className="mt-3 text-amber-700 underline text-sm font-semibold flex items-center gap-1 mx-auto">
+          <button onClick={() => { sfx.pop(); speakWord(lastResult.word); }} className="mt-3 text-amber-700 underline text-sm font-semibold flex items-center gap-1 mx-auto">
             <Volume2 className="w-4 h-4" /> Hear it again
           </button>
           <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
@@ -1181,7 +1234,7 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
       onBack={() => setScreen('home')} onSaveExit={saveAndExit} step={step} total={words.length}>
       <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-12 text-center pop-in">
         <div className="text-gray-500 mb-4 font-semibold">Tap the speaker to hear your word 👂</div>
-        <button onClick={() => { sfx.pop(); speak(words[step]); }}
+        <button onClick={() => { sfx.pop(); speakWord(words[step]); }}
           className="pressable mx-auto mb-6 w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-amber-300 to-orange-500 text-white flex items-center justify-center kid-shadow">
           <Volume2 className="w-16 h-16 md:w-20 md:h-20" />
         </button>
@@ -1214,7 +1267,7 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
             {step + 1 === words.length ? 'Finish ✓' : 'Next →'}
           </button>
         </form>
-        <button onClick={() => { sfx.pop(); speak(words[step]); }} className="mt-5 text-amber-700 font-semibold underline text-sm flex items-center gap-1 mx-auto">
+        <button onClick={() => { sfx.pop(); speakWord(words[step]); }} className="mt-5 text-amber-700 font-semibold underline text-sm flex items-center gap-1 mx-auto">
           <RefreshCw className="w-4 h-4" /> Hear it again
         </button>
       </div>
@@ -1336,7 +1389,7 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
               ))}
             </div>
           )}
-          <button onClick={() => { sfx.pop(); speak(q.word); }} className="mt-3 text-sky-600 text-sm font-semibold flex items-center gap-1 mx-auto"><Volume2 className="w-4 h-4" /> Hear "{q.word}"</button>
+          <button onClick={() => { sfx.pop(); speakWord(q.word); }} className="mt-3 text-sky-600 text-sm font-semibold flex items-center gap-1 mx-auto"><Volume2 className="w-4 h-4" /> Hear "{q.word}"</button>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           {q.options.map((opt, idx) => {
