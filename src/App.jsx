@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Volume2, Check, X, Trophy, Sparkles, BookOpen, Calculator, PenTool, ArrowLeft,
   Crown, Heart, RefreshCw, Send, ChevronRight, Play, Pause, RotateCcw, Star,
-  Headphones, Medal, Globe, Beaker, Landmark, Film
+  Headphones, Medal, Globe, Beaker, Landmark, Film, Brain, Lock, Flame, TrendingUp, Settings
 } from 'lucide-react';
 import {
   loadProgress, saveProgress, subscribeProgress, getCachedStory, cacheStory,
@@ -11,9 +11,10 @@ import {
 } from './firebase.js';
 import {
   TOTAL_DAYS, SPELLING_BANK, VOCAB_BANK, WRITING_PROMPTS, FALLBACK_STORIES,
-  lessonSubjectForDate, SUBJECT_META, lessonTopicFor, hardcodedLessonFor,
+  lessonSubjectForDate, lessonSubjectForDay, SUBJECT_META, lessonTopicFor, hardcodedLessonFor,
   lessonBriefFor, targetYearFor
 } from './content.js';
+import { getVerbalQuestionsForDay, getNonVerbalQuestionsForDay } from './content-reasoning.js';
 import { sfx, primeAudio } from './sounds.js';
 import LessonAnimation from './animations.jsx';
 
@@ -116,11 +117,13 @@ const DEDUPED_SPELLING = [...new Set(SPELLING_BANK)];
 // Each tier gets its own slice, and we use a sliding window across days so
 // words don't repeat within any single tier (15 consecutive days) and ideally
 // not across the whole 60-day course if the bank is large enough.
-function getSpellingWords(day) {
+// tierOffset: -1 = easier, 0 = normal, +1 = harder. Invisible to the user.
+function getSpellingWords(day, tierOffset = 0) {
   const N = DEDUPED_SPELLING.length;
   const tierSize = Math.floor(N / 4);
   const daysPerTier = Math.ceil(TOTAL_DAYS / 4); // 15
-  const tier = Math.min(3, Math.floor((day - 1) / daysPerTier));
+  const baseTier = Math.min(3, Math.floor((day - 1) / daysPerTier));
+  const tier = Math.max(0, Math.min(3, baseTier + tierOffset));
   const dayInTier = (day - 1) % daysPerTier; // 0..14
 
   // Tier window in the bank
@@ -170,10 +173,11 @@ function getVocabForDay(day) {
 
 function getWritingPrompt(day) { return WRITING_PROMPTS[(day - 1) % WRITING_PROMPTS.length]; }
 
-function getMathProblems(day) {
+function getMathProblems(day, tierOffset = 0) {
   const rand = mulberry32(day * 41 + 5);
   const problems = [];
-  const tier = Math.min(3, Math.floor((day - 1) / Math.ceil(TOTAL_DAYS / 4)));
+  const baseTier = Math.min(3, Math.floor((day - 1) / Math.ceil(TOTAL_DAYS / 4)));
+  const tier = Math.max(0, Math.min(3, baseTier + tierOffset));
   const types = ['×', '+', '−', '÷'];
   for (let i = 0; i < 10; i++) {
     const type = types[i % 4];
@@ -206,6 +210,7 @@ function getMathProblems(day) {
 // and voice list changes across platforms. Prefer high-quality UK female voices.
 let _cachedVoice = null;
 let _cachedSpellingVoice = null;
+let _cachedNarrationVoice = null;
 
 // Voice names commonly shipped as female on iOS / macOS / Windows / Chrome.
 // Used as a fallback gender detector (speechSynthesis doesn't expose gender).
@@ -232,6 +237,9 @@ function scoreVoice(v, opts = {}) {
   if (/google uk/i.test(v.name)) score += 25;
   if (/google us/i.test(v.name)) score += 15;
 
+  // Strongly penalise low-quality compact voices
+  if (/compact/i.test(v.name)) score -= 30;
+
   // Gender preference: strongly prefer female, penalise obvious male
   if (FEMALE_VOICE_NAMES.test(v.name)) score += 40;
   if (MALE_VOICE_NAMES.test(v.name)) score -= 100; // effectively excludes
@@ -243,19 +251,28 @@ function scoreVoice(v, opts = {}) {
 
   // For spelling: extra boost to voices known to be very clear/articulate
   if (opts.crispForSpelling) {
-    // Samantha (iOS) and Karen (AUS) are especially clear per-word
     if (/^(samantha|karen|serena|kate)/i.test(v.name)) score += 25;
-    // US voices tend to articulate individual words more crisply
     if (/en.?US/i.test(v.lang)) score += 10;
+  }
+
+  // For narration (story reading): extra boost to voices known to be
+  // natural-sounding for flowing prose. Siri, Samantha, Karen, Serena,
+  // Jenny/Aria/Emma on Windows. Avoid anything "Compact".
+  if (opts.narration) {
+    if (/siri/i.test(v.name)) score += 30;
+    if (/^(samantha|karen|serena|moira|fiona|tessa)/i.test(v.name)) score += 25;
+    if (/^(jenny|aria|emma|nora|libby|sonia)/i.test(v.name)) score += 20; // Windows neural
+    if (/natural|neural/i.test(v.name)) score += 20; // double-up on top of base +35
+    if (/compact|compressed/i.test(v.name)) score -= 60; // force skip
   }
 
   return score;
 }
 
 function pickBestVoice(opts = {}) {
-  const cacheKey = opts.crispForSpelling ? '_spelling' : '_default';
   if (opts.crispForSpelling && _cachedSpellingVoice) return _cachedSpellingVoice;
-  if (!opts.crispForSpelling && _cachedVoice) return _cachedVoice;
+  if (opts.narration && _cachedNarrationVoice) return _cachedNarrationVoice;
+  if (!opts.crispForSpelling && !opts.narration && _cachedVoice) return _cachedVoice;
   if (!window.speechSynthesis) return null;
   const voices = window.speechSynthesis.getVoices();
   if (!voices || voices.length === 0) return null;
@@ -266,14 +283,21 @@ function pickBestVoice(opts = {}) {
     if (s > bestScore) { bestScore = s; best = v; }
   }
   if (opts.crispForSpelling) _cachedSpellingVoice = best;
+  else if (opts.narration) _cachedNarrationVoice = best;
   else _cachedVoice = best;
   return best;
 }
 
 // Prime voices on load — browsers often load the voice list asynchronously
 if (typeof window !== 'undefined' && window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => { _cachedVoice = null; _cachedSpellingVoice = null; };
-  setTimeout(() => { pickBestVoice(); pickBestVoice({ crispForSpelling: true }); }, 0);
+  window.speechSynthesis.onvoiceschanged = () => {
+    _cachedVoice = null; _cachedSpellingVoice = null; _cachedNarrationVoice = null;
+  };
+  setTimeout(() => {
+    pickBestVoice();
+    pickBestVoice({ crispForSpelling: true });
+    pickBestVoice({ narration: true });
+  }, 0);
 }
 
 function speak(text, opts = {}) {
@@ -284,7 +308,7 @@ function speak(text, opts = {}) {
     u.rate = opts.rate ?? 0.92;
     u.pitch = opts.pitch ?? 1.02;
     u.volume = 1;
-    const v = pickBestVoice({ crispForSpelling: opts.crispForSpelling });
+    const v = pickBestVoice({ crispForSpelling: opts.crispForSpelling, narration: opts.narration });
     if (v) u.voice = v;
     if (opts.onend) u.onend = opts.onend;
     if (opts.onboundary) u.onboundary = opts.onboundary;
@@ -590,7 +614,7 @@ export default function App() {
 
   const isDayComplete = (name, d) => {
     const p = progress[name]?.[`day${d}`];
-    return p && p.spelling !== undefined && p.vocab !== undefined && p.writing !== undefined && p.math !== undefined && p.reading !== undefined;
+    return p && p.spelling !== undefined && p.vocab !== undefined && p.writing !== undefined && p.math !== undefined && p.reading !== undefined && p.puzzles !== undefined;
   };
   // Day progression rules:
   // - Ava and Layla progress together — Day N+1 unlocks only when BOTH finish Day N
@@ -640,6 +664,7 @@ export default function App() {
       {screen === 'writing'  && <WritingActivity {...sharedProps} />}
       {screen === 'math'     && <MathActivity {...sharedProps} />}
       {screen === 'reading'  && <ReadingActivity {...sharedProps} />}
+      {screen === 'puzzles'  && <PuzzleActivity {...sharedProps} />}
       {screen === 'lesson-history'   && <LessonActivity key="lh" subject="history"   {...sharedProps} />}
       {screen === 'lesson-geography' && <LessonActivity key="lg" subject="geography" {...sharedProps} />}
       {screen === 'lesson-science'   && <LessonActivity key="ls" subject="science"   {...sharedProps} />}
@@ -654,11 +679,48 @@ export default function App() {
    PROFILE SELECTION
    ============================================================ */
 function ProfileSelection({ onSelect, progress }) {
+  const [tapCount, setTapCount] = useState(0);
+  const [showPin, setShowPin] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const tapTimerRef = useRef(null);
+
+  // Triple-tap on the title opens the parent PIN entry
+  function handleTitleTap() {
+    setTapCount(c => c + 1);
+    clearTimeout(tapTimerRef.current);
+    tapTimerRef.current = setTimeout(() => setTapCount(0), 900);
+    if (tapCount + 1 >= 3) {
+      setTapCount(0);
+      clearTimeout(tapTimerRef.current);
+      setShowPin(true);
+      setPinInput('');
+      setPinError(false);
+    }
+  }
+
+  function submitPin() {
+    const savedPin = (typeof window !== 'undefined' && localStorage.getItem('parentPin')) || '0000';
+    if (pinInput === savedPin) {
+      setShowPin(false);
+      setShowDashboard(true);
+      setPinInput('');
+    } else {
+      setPinError(true);
+      setTimeout(() => setPinError(false), 1500);
+    }
+  }
+
+  if (showDashboard) {
+    return <ParentDashboard progress={progress} onBack={() => setShowDashboard(false)} />;
+  }
+
   return (
     <div className="font-body min-h-screen w-full ava-bg flex flex-col items-center justify-center p-6">
       <div className="text-center mb-10 pop-in">
-        <div className="text-6xl mb-2 floaty">🐶 ⚽ 🦖</div>
-        <h1 className="font-display text-4xl md:text-6xl font-bold leading-tight">
+        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ 🦖</div>
+        <h1 className="font-display text-4xl md:text-6xl font-bold leading-tight cursor-pointer select-none" onClick={handleTitleTap}>
           <span className="ava-text">Ava</span>
           <span className="text-gray-400">, </span>
           <span className="layla-text">Layla</span>
@@ -695,6 +757,279 @@ function ProfileSelection({ onSelect, progress }) {
           );
         })}
       </div>
+
+      {/* PIN entry modal */}
+      {showPin && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50" onClick={() => setShowPin(false)}>
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full kid-shadow" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                <Lock className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <div className="font-display text-xl font-bold text-gray-800">Parent Dashboard</div>
+                <div className="text-sm text-gray-500">Enter 4-digit PIN</div>
+              </div>
+            </div>
+            <input type="password" inputMode="numeric" maxLength={4} autoFocus
+              value={pinInput}
+              onChange={e => { setPinInput(e.target.value.replace(/\D/g, '')); setPinError(false); }}
+              onKeyDown={e => e.key === 'Enter' && submitPin()}
+              className={`w-full p-4 rounded-xl border-4 text-center font-display text-3xl tracking-widest ${pinError ? 'border-rose-400 bg-rose-50' : 'border-indigo-200'}`}
+              placeholder="••••" />
+            {pinError && <div className="text-rose-600 text-sm mt-2 text-center">Incorrect PIN</div>}
+            <div className="text-xs text-gray-400 mt-2 text-center">Default PIN is 0000. You can change it in the dashboard.</div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setShowPin(false)} className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold pressable">Cancel</button>
+              <button onClick={submitPin} className="flex-1 py-3 rounded-xl bg-indigo-500 text-white font-semibold pressable">Enter</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   PARENT DASHBOARD — hidden behind triple-tap + PIN on title
+   ============================================================ */
+function ParentDashboard({ progress, onBack }) {
+  const [pinChanging, setPinChanging] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [pinSaved, setPinSaved] = useState(false);
+
+  const TODAY_ACTIVITIES = ['spelling','vocab','writing','math','reading','puzzles'];
+  const SUBJECT_ACTIVITIES = ['history','geography','science'];
+  const MAX = { spelling:10, vocab:20, writing:10, math:10, reading:4, puzzles:10, history:10, geography:10, science:10 };
+
+  function savePin() {
+    if (newPin.length !== 4) return;
+    localStorage.setItem('parentPin', newPin);
+    setPinSaved(true);
+    setTimeout(() => { setPinSaved(false); setPinChanging(false); setNewPin(''); }, 1500);
+  }
+
+  function getStatsFor(userProgress) {
+    if (!userProgress) return { total: 0, days: 0, streak: 0, byActivity: {}, weakest: null, strongest: null, currentDay: 1, tiers: {} };
+    let total = 0;
+    let days = 0;
+    const byActivity = {};
+    TODAY_ACTIVITIES.concat(SUBJECT_ACTIVITIES).forEach(a => byActivity[a] = { points: 0, attempts: 0, avgPct: 0 });
+    for (const key in userProgress) {
+      if (!key.startsWith('day')) continue;
+      const day = userProgress[key];
+      if (!day || typeof day !== 'object') continue;
+      let dayComplete = true;
+      TODAY_ACTIVITIES.forEach(a => {
+        if (day[a] !== undefined) {
+          byActivity[a].points += day[a];
+          byActivity[a].attempts += 1;
+          total += day[a];
+        } else dayComplete = false;
+      });
+      SUBJECT_ACTIVITIES.forEach(a => {
+        if (day[a] !== undefined) {
+          byActivity[a].points += day[a];
+          byActivity[a].attempts += 1;
+          total += day[a];
+        }
+      });
+      if (dayComplete) days++;
+    }
+    // Compute average %
+    Object.keys(byActivity).forEach(a => {
+      const b = byActivity[a];
+      b.avgPct = b.attempts > 0 ? Math.round((b.points / (b.attempts * MAX[a])) * 100) : 0;
+    });
+    // Weakest & strongest (of base 6, where attempted)
+    const attempted = TODAY_ACTIVITIES.filter(a => byActivity[a].attempts > 0);
+    const weakest = attempted.length ? attempted.reduce((min, a) => byActivity[a].avgPct < byActivity[min].avgPct ? a : min, attempted[0]) : null;
+    const strongest = attempted.length ? attempted.reduce((max, a) => byActivity[a].avgPct > byActivity[max].avgPct ? a : max, attempted[0]) : null;
+    // Current day
+    let currentDay = 1;
+    for (let d = 1; d <= TOTAL_DAYS; d++) {
+      const day = userProgress[`day${d}`];
+      if (!day) break;
+      if (!TODAY_ACTIVITIES.every(a => day[a] !== undefined)) break;
+      currentDay = d + 1;
+    }
+    const streak = calcStreak(userProgress, currentDay);
+    // Tier offsets (what adaptive difficulty is currently doing)
+    const tiers = {};
+    ['spelling','math','puzzles'].forEach(a => { tiers[a] = tierOffsetFor(userProgress, a, currentDay); });
+    return { total, days, streak, byActivity, weakest, strongest, currentDay, tiers };
+  }
+
+  const stats = {};
+  NAMES.forEach(n => { stats[n] = getStatsFor(progress[n]); });
+
+  const activityMeta = {
+    spelling:  { label: 'Spelling',   emoji: '🔊' },
+    vocab:     { label: 'Vocabulary', emoji: '📚' },
+    writing:   { label: 'Writing',    emoji: '✏️' },
+    math:      { label: 'Maths',      emoji: '🧮' },
+    reading:   { label: 'Reading',    emoji: '📖' },
+    puzzles:   { label: 'Puzzles',    emoji: '🧠' },
+    history:   { label: 'History',    emoji: '🏛️' },
+    geography: { label: 'Geography',  emoji: '🌍' },
+    science:   { label: 'Science',    emoji: '🔬' }
+  };
+  function tierLabel(offset) {
+    if (offset === 1) return '↑ Stretching harder';
+    if (offset === -1) return '↓ Easing off';
+    return '– On level';
+  }
+  function tierColor(offset) {
+    if (offset === 1) return 'text-emerald-600';
+    if (offset === -1) return 'text-amber-600';
+    return 'text-gray-500';
+  }
+
+  return (
+    <div className="font-body min-h-screen w-full bg-gray-50 p-5 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={onBack} className="pressable bg-white kid-shadow rounded-2xl px-4 py-3 flex items-center gap-2 text-gray-700 font-semibold">
+            <ArrowLeft className="w-5 h-5" /> Back
+          </button>
+          <div className="font-display text-3xl font-bold text-gray-800 flex items-center gap-2">
+            <Settings className="w-7 h-7 text-indigo-600" /> Parent Dashboard
+          </div>
+          <button onClick={() => setPinChanging(true)} className="text-sm bg-white kid-shadow rounded-xl px-3 py-2 text-gray-600 font-semibold">Change PIN</button>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-5 mb-6">
+          {NAMES.map(n => {
+            const t = THEME[n];
+            const s = stats[n];
+            return (
+              <div key={n} className="bg-white kid-shadow rounded-[1.5rem] p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <Mascot who={n} mood="idle" size={44} />
+                  <div>
+                    <div className={`${t.font} text-xl font-bold ${t.text}`}>{n}</div>
+                    <div className="text-xs text-gray-500">{t.worldName}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                  <div className="bg-gray-50 rounded-xl p-2">
+                    <div className="text-xs text-gray-500">Points</div>
+                    <div className="font-display text-xl font-bold text-gray-800">{s.total}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-2">
+                    <div className="text-xs text-gray-500">Days</div>
+                    <div className="font-display text-xl font-bold text-gray-800">{s.days}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-2">
+                    <div className="text-xs text-gray-500">Streak</div>
+                    <div className="font-display text-xl font-bold text-orange-600 flex items-center justify-center gap-1">{s.streak > 0 && <Flame className="w-4 h-4" />}{s.streak}</div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 mb-2">Currently on <span className="font-bold text-gray-700">Day {s.currentDay}</span></div>
+                {s.strongest && (
+                  <div className="text-sm mb-1">
+                    <span className="text-gray-500">Strongest: </span>
+                    <span className="font-semibold text-emerald-700">{activityMeta[s.strongest].emoji} {activityMeta[s.strongest].label}</span>
+                    <span className="text-gray-400 text-xs ml-1">({s.byActivity[s.strongest].avgPct}%)</span>
+                  </div>
+                )}
+                {s.weakest && s.weakest !== s.strongest && (
+                  <div className="text-sm mb-1">
+                    <span className="text-gray-500">Needs work: </span>
+                    <span className="font-semibold text-rose-700">{activityMeta[s.weakest].emoji} {activityMeta[s.weakest].label}</span>
+                    <span className="text-gray-400 text-xs ml-1">({s.byActivity[s.weakest].avgPct}%)</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Per-activity averages table */}
+        <div className="bg-white kid-shadow rounded-[1.5rem] p-5 md:p-6 mb-6">
+          <div className="font-display text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-indigo-600" /> Average scores by activity
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-gray-200 text-gray-500">
+                  <th className="text-left py-2 pr-4 font-semibold">Activity</th>
+                  {NAMES.map(n => <th key={n} className="text-center py-2 px-2 font-semibold">{THEME[n].emoji} {n}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {['spelling','vocab','writing','math','reading','puzzles','history','geography','science'].map(a => (
+                  <tr key={a} className="border-b border-gray-100">
+                    <td className="py-2 pr-4 font-semibold text-gray-700">{activityMeta[a].emoji} {activityMeta[a].label}</td>
+                    {NAMES.map(n => {
+                      const b = stats[n].byActivity[a];
+                      if (!b || b.attempts === 0) return <td key={n} className="text-center py-2 px-2 text-gray-300">—</td>;
+                      const pct = b.avgPct;
+                      const cls = pct >= 80 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-rose-600';
+                      return (
+                        <td key={n} className={`text-center py-2 px-2 font-bold ${cls}`}>
+                          {pct}% <span className="text-gray-400 font-normal text-xs">({b.attempts})</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="text-xs text-gray-400 mt-2">Bracketed number = attempts. Green 80%+ · amber 50-79% · red under 50%.</div>
+        </div>
+
+        {/* Adaptive difficulty status */}
+        <div className="bg-white kid-shadow rounded-[1.5rem] p-5 md:p-6 mb-6">
+          <div className="font-display text-xl font-bold text-gray-800 mb-1 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-indigo-600" /> Adaptive difficulty
+          </div>
+          <div className="text-xs text-gray-500 mb-3">Difficulty adjusts automatically based on last 3 days' scores (invisible to the kids). 80%+ moves up, under 40% moves down.</div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {NAMES.map(n => (
+              <div key={n} className="bg-gray-50 rounded-xl p-3">
+                <div className="font-bold text-gray-700 mb-2">{THEME[n].emoji} {n}</div>
+                {['spelling','math','puzzles'].map(a => (
+                  <div key={a} className="flex justify-between items-center text-sm mb-1">
+                    <span className="text-gray-500">{activityMeta[a].emoji} {activityMeta[a].label}</span>
+                    <span className={`font-semibold ${tierColor(stats[n].tiers[a])}`}>{tierLabel(stats[n].tiers[a])}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Change PIN modal */}
+        {pinChanging && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50" onClick={() => setPinChanging(false)}>
+            <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full kid-shadow" onClick={e => e.stopPropagation()}>
+              <div className="font-display text-xl font-bold text-gray-800 mb-3 flex items-center gap-2"><Lock className="w-5 h-5" /> Change PIN</div>
+              {pinSaved ? (
+                <div className="text-center py-6">
+                  <Check className="w-12 h-12 text-emerald-600 mx-auto" />
+                  <div className="font-display text-lg text-emerald-700 mt-2">PIN updated!</div>
+                </div>
+              ) : (
+                <>
+                  <input type="password" inputMode="numeric" maxLength={4} autoFocus
+                    value={newPin}
+                    onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
+                    className="w-full p-4 rounded-xl border-4 border-indigo-200 text-center font-display text-3xl tracking-widest"
+                    placeholder="••••" />
+                  <div className="text-xs text-gray-400 mt-2">Enter a new 4-digit PIN.</div>
+                  <div className="flex gap-2 mt-4">
+                    <button onClick={() => setPinChanging(false)} className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold pressable">Cancel</button>
+                    <button onClick={savePin} disabled={newPin.length !== 4} className="flex-1 py-3 rounded-xl bg-indigo-500 text-white font-semibold pressable disabled:opacity-40">Save</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -704,13 +1039,55 @@ function totalPoints(userProgress) {
   let t = 0;
   for (const k in userProgress) {
     const d = userProgress[k]; if (!d || typeof d !== 'object') continue;
-    t += (d.spelling || 0) + (d.vocab || 0) + (d.writing || 0) + (d.math || 0) + (d.reading || 0);
+    t += (d.spelling || 0) + (d.vocab || 0) + (d.writing || 0) + (d.math || 0) + (d.reading || 0) + (d.puzzles || 0);
   }
   return t;
 }
 function dayPoints(dayObj, activities) {
   if (!dayObj) return 0;
   return activities.reduce((s, a) => s + (dayObj[a.id] || 0), 0);
+}
+
+/* ------ Adaptive difficulty ------
+   Look at the last 3 completed days' scores for this subject and compute a
+   tier offset of -1, 0, or +1. Invisible to the kids — the getter functions
+   in content.js use this offset to pick harder or easier content.
+   Rule: average >= 80% over last 3 attempts → +1, <= 40% → -1, else 0.
+*/
+const ACTIVITY_MAX = { spelling: 10, vocab: 20, writing: 10, math: 10, reading: 4, puzzles: 10, history: 10, geography: 10, science: 10 };
+
+function tierOffsetFor(userProgress, activityId, currentDay) {
+  if (!userProgress) return 0;
+  const scores = [];
+  for (let d = currentDay - 1; d >= 1 && scores.length < 3; d--) {
+    const day = userProgress[`day${d}`];
+    if (day && day[activityId] !== undefined) {
+      const max = ACTIVITY_MAX[activityId] || 10;
+      scores.push(day[activityId] / max);
+    }
+  }
+  if (scores.length < 2) return 0; // need at least 2 prior data points to adapt
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  if (avg >= 0.8) return 1;
+  if (avg <= 0.4) return -1;
+  return 0;
+}
+
+/* ------ Streak calculation ------
+   Consecutive days ending at (currentDay - 1) where user completed all base activities.
+*/
+const BASE_ACTIVITIES = ['spelling','vocab','writing','math','reading','puzzles'];
+function calcStreak(userProgress, currentDay) {
+  if (!userProgress) return 0;
+  let streak = 0;
+  for (let d = currentDay - 1; d >= 1; d--) {
+    const day = userProgress[`day${d}`];
+    if (!day) break;
+    const allDone = BASE_ACTIVITIES.every(id => day[id] !== undefined);
+    if (!allDone) break;
+    streak++;
+  }
+  return streak;
 }
 
 /* ============================================================
@@ -744,7 +1121,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
   }
 
   // v3: today's subject (null on Sunday)
-  const todaySubject = lessonSubjectForDate();
+  const todaySubject = lessonSubjectForDay(currentDay);
   const subjectMeta = todaySubject ? SUBJECT_META[todaySubject] : null;
   const todayTopic = todaySubject ? lessonTopicFor(todaySubject, currentDay) : null;
 
@@ -753,7 +1130,8 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
     { id: 'vocab',    label: 'Vocabulary', icon: BookOpen,   emoji: '📚', color: 'from-sky-300 to-indigo-400',    outOf: 20 },
     { id: 'writing',  label: 'Writing',    icon: PenTool,    emoji: '✏️', color: 'from-emerald-300 to-green-500', outOf: 10 },
     { id: 'math',     label: 'Maths',      icon: Calculator, emoji: '🧮', color: 'from-violet-300 to-purple-500', outOf: 10 },
-    { id: 'reading',  label: 'Reading',    icon: Headphones, emoji: '📖', color: 'from-rose-300 to-red-400',      outOf: 4  }
+    { id: 'reading',  label: 'Reading',    icon: Headphones, emoji: '📖', color: 'from-rose-300 to-red-400',      outOf: 4  },
+    { id: 'puzzles',  label: 'Puzzles',    icon: Brain,      emoji: '🧠', color: 'from-indigo-400 to-fuchsia-500', outOf: 10 }
   ];
 
   // Add today's subject lesson card if not Sunday
@@ -783,6 +1161,9 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
   // Trophy cabinet — one trophy per fully completed day
   const myCompleted = [];
   for (let d = 1; d < currentDay; d++) if (isDayComplete(user, d)) myCompleted.push(d);
+
+  // Streak — consecutive days ending yesterday
+  const streak = useMemo(() => calcStreak(progress[user], currentDay), [progress, user, currentDay]);
 
   return (
     <div className="min-h-screen w-full p-5 md:p-8 max-w-6xl mx-auto">
@@ -814,20 +1195,21 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
             </div>
             <div className="font-display text-5xl md:text-6xl font-bold mt-1">Day {currentDay}</div>
             <div className="opacity-90 mt-1">of {TOTAL_DAYS}</div>
-            {todaySubject ? (
+            {todaySubject && (
               <div className="mt-3 inline-flex items-center gap-2 bg-white/20 backdrop-blur rounded-2xl px-3 py-1.5 text-sm font-semibold">
                 <span>{subjectMeta.emoji}</span>
                 <span>Today's subject: {subjectMeta.name}</span>
-              </div>
-            ) : (
-              <div className="mt-3 inline-flex items-center gap-2 bg-white/20 backdrop-blur rounded-2xl px-3 py-1.5 text-sm font-semibold">
-                <span>☀️</span><span>Sunday — rest day (no extra subject)</span>
               </div>
             )}
           </div>
           <div className="text-right">
             <div className="text-sm uppercase tracking-widest opacity-90 font-display">Today's points</div>
             <div className="font-display text-5xl md:text-6xl font-bold">{myTotalToday}<span className="text-2xl opacity-75">/{totalPossibleToday}</span></div>
+            {streak >= 2 && (
+              <div className="mt-2 inline-flex items-center gap-1 bg-white/20 backdrop-blur rounded-full px-3 py-1 text-sm font-bold">
+                <Flame className="w-4 h-4" /> {streak} day streak!
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1065,8 +1447,10 @@ function useResumable(activity, user, currentDay) {
 /* ============================================================
    SPELLING — hint button + memory tips + type-3-times learning loop
    ============================================================ */
-function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
-  const words = useMemo(() => getSpellingWords(currentDay), [currentDay]);
+function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen }) {
+  const userProgress = progress[user] || {};
+  const tierOffset = useMemo(() => tierOffsetFor(userProgress, 'spelling', currentDay), [userProgress, currentDay]);
+  const words = useMemo(() => getSpellingWords(currentDay, tierOffset), [currentDay, tierOffset]);
   const theme = THEME[user];
   const [step, setStep] = useState(0);
   const [input, setInput] = useState('');
@@ -1392,11 +1776,17 @@ function SpellingActivity({ user, currentDay, saveActivity, setScreen }) {
 function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
   const words = useMemo(() => getVocabForDay(currentDay), [currentDay]);
   const theme = THEME[user];
-  // Question sequence: meaning_0, usage_0, meaning_1, usage_1, ... 20 total
+  // Question sequence: all 10 meanings first, then all 10 usages (total 20).
+  // Kids learn each word's definition by going through the whole set, then
+  // apply their understanding to usage sentences. Much less context-switching.
   const questions = useMemo(() => {
     const out = [];
+    // Pass 1 — all definitions
     words.forEach((w, i) => {
       out.push({ kind: 'meaning', wordIdx: i, word: w.word, options: w.meaningOptions, correct: w.meaningCorrect, definition: w.definition });
+    });
+    // Pass 2 — all usages
+    words.forEach((w, i) => {
       out.push({ kind: 'usage', wordIdx: i, word: w.word, sentence: w.sentence, options: w.usageOptions, correct: w.usageCorrect, definition: w.definition });
     });
     return out;
@@ -1579,88 +1969,33 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
             </div>
           </div>
 
-          <div className="space-y-4 text-left">
-            {/* WHAT YOU DID WELL */}
-            <div className="bg-emerald-50 border-4 border-emerald-200 rounded-2xl p-5">
-              <div className="flex items-center gap-2 text-emerald-700 font-display font-bold text-lg mb-3"><Heart className="w-5 h-5" /> What you did well</div>
-              {feedback.praise && <div className="text-gray-700 mb-3 italic">"{feedback.praise}"</div>}
-              {feedback.strengths && feedback.strengths.length > 0 && (
-                <div className="space-y-2">
-                  {feedback.strengths.map((s, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <div className="text-emerald-500 flex-shrink-0 mt-0.5">✨</div>
-                      <div className="text-gray-700">{s}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* PER-SENTENCE FEEDBACK */}
-            {feedback.perSentence && feedback.perSentence.length > 0 && (
-              <div className="bg-amber-50 border-4 border-amber-200 rounded-2xl p-5">
-                <div className="flex items-center gap-2 text-amber-800 font-display font-bold text-lg mb-3"><BookOpen className="w-5 h-5" /> Looking at your sentences</div>
-                <div className="space-y-3">
-                  {feedback.perSentence.map((item, i) => (
-                    <div key={i} className="bg-white rounded-xl p-3 border border-amber-100">
-                      <div className="text-sm italic text-gray-600 mb-1 leading-snug">"{item.s}"</div>
-                      <div className="text-sm text-amber-900">→ {item.note}</div>
-                    </div>
-                  ))}
-                </div>
+          {/* Short, kid-friendly feedback — 3-4 lines total */}
+          <div className="bg-gradient-to-br from-emerald-50 to-green-50 border-4 border-emerald-200 rounded-2xl p-5 md:p-6 space-y-3 text-gray-800 text-left">
+            {feedback.praise && (
+              <div className="flex items-start gap-3">
+                <div className="text-2xl flex-shrink-0">⭐</div>
+                <div className="leading-relaxed"><span className="font-bold text-emerald-700">Well done: </span>{feedback.praise}</div>
               </div>
             )}
-
-            {/* IMPROVEMENT AREAS WITH EXAMPLES */}
-            {feedback.improvements && feedback.improvements.length > 0 && (
-              <div className="bg-sky-50 border-4 border-sky-200 rounded-2xl p-5">
-                <div className="flex items-center gap-2 text-sky-800 font-display font-bold text-lg mb-3"><Sparkles className="w-5 h-5" /> Ways to level up</div>
-                <div className="space-y-4">
-                  {feedback.improvements.map((imp, i) => (
-                    <div key={i} className="bg-white rounded-xl p-4 border border-sky-100">
-                      <div className="font-display font-bold text-sky-900 mb-1">{i+1}. {imp.area}</div>
-                      {imp.why && <div className="text-sm text-gray-700 mb-2">{imp.why}</div>}
-                      {imp.example && (
-                        <div className="bg-sky-50 rounded-lg p-3 border-l-4 border-sky-400">
-                          <div className="text-xs uppercase tracking-wider font-bold text-sky-700 mb-1">Try like this</div>
-                          <div className="text-gray-800 italic">"{imp.example}"</div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+            {feedback.suggestion && (
+              <div className="flex items-start gap-3">
+                <div className="text-2xl flex-shrink-0">✨</div>
+                <div className="leading-relaxed"><span className="font-bold text-sky-700">Try next time: </span>{feedback.suggestion}</div>
               </div>
             )}
-
-            {/* IDEAS TO CONTINUE */}
-            {feedback.ideas && feedback.ideas.length > 0 && (
-              <div className="bg-violet-50 border-4 border-violet-200 rounded-2xl p-5">
-                <div className="flex items-center gap-2 text-violet-800 font-display font-bold text-lg mb-3">💡 Ideas to keep your story going</div>
-                <ul className="space-y-2">
-                  {feedback.ideas.map((s, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <div className="text-violet-500 flex-shrink-0 mt-0.5">→</div>
-                      <div className="text-gray-700">{s}</div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Old-style fallback "suggestion" if present (heuristic feedback) */}
-            {feedback.suggestion && !feedback.improvements && (
-              <div className="bg-sky-50 border-4 border-sky-200 rounded-2xl p-5">
-                <div className="flex items-center gap-2 text-sky-700 font-display font-bold text-lg mb-2"><Sparkles className="w-5 h-5" /> Try next time</div>
-                <div className="text-gray-700">{feedback.suggestion}</div>
-              </div>
-            )}
-
-            {feedback.cheer && (
-              <div className={`rounded-2xl p-5 text-center font-display text-lg ${theme.pill}`}>
-                {feedback.cheer}
+            {feedback.idea && (
+              <div className="flex items-start gap-3">
+                <div className="text-2xl flex-shrink-0">💡</div>
+                <div className="leading-relaxed"><span className="font-bold text-violet-700">Idea for your story: </span>{feedback.idea}</div>
               </div>
             )}
           </div>
+
+          {feedback.cheer && (
+            <div className={`mt-4 rounded-2xl p-4 text-center font-display text-lg ${theme.pill}`}>
+              {feedback.cheer}
+            </div>
+          )}
 
           <div className="text-center mt-8">
             <button onClick={() => { sfx.pop(); setScreen('home'); }} className="pressable px-10 py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-green-600 text-white font-display font-bold text-xl kid-shadow">Back to Home</button>
@@ -1710,8 +2045,10 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
 /* ============================================================
    MATH — with AI explanations for wrong answers
    ============================================================ */
-function MathActivity({ user, currentDay, saveActivity, setScreen }) {
-  const problems = useMemo(() => getMathProblems(currentDay), [currentDay]);
+function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
+  const userProgress = progress[user] || {};
+  const tierOffset = useMemo(() => tierOffsetFor(userProgress, 'math', currentDay), [userProgress, currentDay]);
+  const problems = useMemo(() => getMathProblems(currentDay, tierOffset), [currentDay, tierOffset]);
   const theme = THEME[user];
   const [step, setStep] = useState(0);
   const [input, setInput] = useState('');
@@ -2022,7 +2359,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
     }
 
     utteranceRef.current = speak(fullText, {
-      rate: 0.92, pitch: 1.02,
+      rate: 0.88, pitch: 1.04, narration: true,
       onboundary: (ev) => {
         // Fires for each word or sentence boundary during speech.
         // ev.charIndex is offset within the utterance text.
@@ -2358,6 +2695,216 @@ function SlideImage({ slide }) {
   );
 }
 
+/* ============================================================
+   PUZZLES — 5 verbal + 5 non-verbal reasoning (11+ prep)
+   ============================================================ */
+function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen }) {
+  const theme = THEME[user];
+
+  // Adaptive tier offsets — invisible to kids
+  const userProgress = progress[user] || {};
+  const verbalOffset = useMemo(() => tierOffsetFor(userProgress, 'puzzles', currentDay), [userProgress, currentDay]);
+  const nonverbalOffset = verbalOffset; // share the same offset for now
+
+  const verbalQs = useMemo(() => getVerbalQuestionsForDay(currentDay, verbalOffset, 5), [currentDay, verbalOffset]);
+  const nonverbalQs = useMemo(() => getNonVerbalQuestionsForDay(currentDay, nonverbalOffset, 5), [currentDay, nonverbalOffset]);
+  const questions = useMemo(() => {
+    // 5 verbal first, then 5 non-verbal
+    return [
+      ...verbalQs.map(q => ({ ...q, kind: 'verbal' })),
+      ...nonverbalQs.map(q => ({ ...q, kind: 'nonverbal' }))
+    ];
+  }, [verbalQs, nonverbalQs]);
+
+  const [step, setStep] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [results, setResults] = useState([]);
+  const [done, setDone] = useState(false);
+
+  // Save & resume
+  const R = useResumable('puzzles', user, currentDay);
+  useEffect(() => {
+    if (R.phase === 'ready' && R.saved && R.saved.state && step === 0 && results.length === 0) {
+      const s = R.saved.state;
+      if (Array.isArray(s.results)) setResults(s.results);
+      if (typeof s.step === 'number') setStep(s.step);
+    }
+  // eslint-disable-next-line
+  }, [R.phase]);
+  function saveAndExit() { sfx.pop(); R.save({ step, results }); setScreen('home'); }
+
+  function choose(idx) {
+    if (picked !== null) return;
+    setPicked(idx);
+    const q = questions[step];
+    const correct = idx === q.correct;
+    correct ? sfx.ding() : sfx.aww();
+    const newResults = [...results, { kind: q.kind, type: q.type, question: q.question, chosen: idx, correctIdx: q.correct, correct, explain: q.explain }];
+    setTimeout(() => {
+      setPicked(null); setResults(newResults);
+      if (step + 1 >= questions.length) {
+        const score = newResults.filter(r => r.correct).length;
+        saveActivity(currentDay, 'puzzles', score, { answers: newResults });
+        R.clear();
+        setDone(true);
+        if (score === 10) sfx.celebration(); else sfx.fanfare();
+      } else { setStep(step + 1); }
+    }, 1600);
+  }
+
+  if (R.phase === 'loading') {
+    return <ActivityShell user={user} title="Puzzles" emoji="🧠" color="from-indigo-400 to-fuchsia-500" onBack={() => setScreen('home')}>
+      <div className="bg-white rounded-[2rem] p-10 text-center">
+        <div className="text-5xl mb-3 floaty">🧠</div>
+        <div className="text-gray-500">Loading…</div>
+      </div>
+    </ActivityShell>;
+  }
+  if (R.phase === 'prompt' && R.saved) {
+    const s = R.saved.state || {};
+    const info = typeof s.step === 'number' ? `On puzzle ${Math.min(s.step + 1, questions.length)} of ${questions.length}` : null;
+    return <ResumePrompt user={user} title="Puzzles" emoji="🧠" color="from-indigo-400 to-fuchsia-500"
+      savedAt={R.saved.savedAt} stepInfo={info}
+      onResume={R.resume} onStartOver={R.startOver} onBack={() => setScreen('home')} />;
+  }
+
+  if (done) {
+    const score = results.filter(r => r.correct).length;
+    return (
+      <ActivityShell user={user} title="Puzzles" emoji="🧠" color="from-indigo-400 to-fuchsia-500" onBack={() => setScreen('home')}>
+        <div className={`rounded-[2rem] p-8 kid-shadow ${theme.gradient} text-white text-center relative overflow-hidden`}>
+          {score >= 6 && <Confetti avaTheme={user === 'Ava'} count={50} />}
+          <div className="relative">
+            <div className="flex justify-center mb-4"><Mascot who={user} mood={score >= 6 ? 'happy' : 'idle'} size={110} /></div>
+            <div className="font-display text-4xl font-bold mb-2">{score === 10 ? 'Perfect brain!' : score >= 8 ? 'Great thinking!' : score >= 5 ? 'Good work!' : 'Nice try!'}</div>
+            <div className="font-display text-6xl font-bold my-3">{score}<span className="text-3xl opacity-80">/10</span></div>
+            <div className="opacity-95">5 verbal + 5 non-verbal · keep practising!</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-[2rem] p-5 kid-shadow mt-5 max-h-96 overflow-auto">
+          <div className="font-display text-lg text-gray-700 mb-3">Review</div>
+          {results.map((r, i) => (
+            <div key={i} className={`p-3 rounded-xl mb-2 text-sm ${r.correct ? 'bg-emerald-50' : 'bg-rose-50'}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-bold">{i + 1}.</span>
+                <span className="text-xs bg-white rounded-full px-2 py-0.5 text-gray-500">{r.kind === 'verbal' ? '📖 Verbal' : '🔷 Non-verbal'}</span>
+                {r.correct ? <Check className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-rose-600" />}
+              </div>
+              <div className="text-gray-700">{r.question}</div>
+              {!r.correct && r.explain && <div className="text-gray-500 italic mt-1">💡 {r.explain}</div>}
+            </div>
+          ))}
+        </div>
+        <button onClick={() => { sfx.pop(); setScreen('home'); }}
+          className="mt-5 w-full pressable bg-white kid-shadow rounded-2xl p-4 font-display text-xl text-gray-700 flex items-center justify-center gap-2">
+          <ArrowLeft className="w-5 h-5" /> Back to home
+        </button>
+      </ActivityShell>
+    );
+  }
+
+  const q = questions[step];
+  const isVerbal = q.kind === 'verbal';
+  const showState = picked !== null;
+
+  return (
+    <ActivityShell user={user} title="Puzzles" emoji="🧠" color="from-indigo-400 to-fuchsia-500" onBack={saveAndExit}>
+      {/* Progress */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex-1 bg-white rounded-full h-3 overflow-hidden kid-shadow">
+          <div className="h-full bg-gradient-to-r from-indigo-400 to-fuchsia-500 transition-all" style={{ width: `${((step) / questions.length) * 100}%` }} />
+        </div>
+        <div className="font-display text-sm text-gray-600">{step + 1} / {questions.length}</div>
+      </div>
+
+      {/* Question card */}
+      <div className="bg-white rounded-[2rem] p-6 md:p-7 kid-shadow mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs bg-indigo-100 text-indigo-700 font-semibold rounded-full px-3 py-1">
+            {isVerbal ? '📖 Verbal' : '🔷 Non-verbal'}
+          </span>
+        </div>
+        <div className="font-display text-xl md:text-2xl text-gray-800 mb-5">{q.question}</div>
+
+        {/* Non-verbal: show the visual prompt */}
+        {!isVerbal && q.showSequence && (
+          <div className="flex items-center gap-3 justify-center mb-5 flex-wrap bg-gray-50 rounded-2xl p-4">
+            {q.showSequence.map((svg, i) => (
+              <React.Fragment key={i}>
+                <div dangerouslySetInnerHTML={{ __html: svg }} />
+                {i < q.showSequence.length - 1 && <div className="text-2xl text-gray-400">→</div>}
+              </React.Fragment>
+            ))}
+            <div className="text-2xl text-gray-400">→</div>
+            <div className="w-20 h-20 border-4 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-3xl text-gray-300">?</div>
+          </div>
+        )}
+        {!isVerbal && q.showAnalogy && (
+          <div className="flex items-center gap-2 justify-center mb-5 flex-wrap bg-gray-50 rounded-2xl p-4">
+            <div dangerouslySetInnerHTML={{ __html: q.showAnalogy.given1 }} />
+            <div className="text-xl text-gray-400">is to</div>
+            <div dangerouslySetInnerHTML={{ __html: q.showAnalogy.given2 }} />
+            <div className="text-xl text-gray-400 mx-2">as</div>
+            <div dangerouslySetInnerHTML={{ __html: q.showAnalogy.prompt }} />
+            <div className="text-xl text-gray-400">is to</div>
+            <div className="w-20 h-20 border-4 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-3xl text-gray-300">?</div>
+          </div>
+        )}
+        {!isVerbal && q.showPrompt && (
+          <div className="flex items-center justify-center mb-5 bg-gray-50 rounded-2xl p-4">
+            <div dangerouslySetInnerHTML={{ __html: q.showPrompt }} />
+          </div>
+        )}
+
+        {/* Verbal: hear-it button */}
+        {isVerbal && (
+          <button onClick={() => { sfx.pop(); speak(q.question); }}
+            className="mb-3 text-indigo-600 text-sm font-semibold flex items-center gap-1">
+            <Volume2 className="w-4 h-4" /> Hear the question
+          </button>
+        )}
+
+        {/* Options */}
+        <div className={`grid gap-3 ${isVerbal ? 'sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'}`}>
+          {q.options.map((opt, idx) => {
+            const isPicked = picked === idx;
+            const isCorrect = idx === q.correct;
+            let cls = 'bg-white border-indigo-200 hover:border-indigo-400';
+            if (showState && isCorrect) cls = 'bg-emerald-100 border-emerald-400 ring-4 ring-emerald-200';
+            else if (showState && isPicked && !isCorrect) cls = 'bg-rose-100 border-rose-400 ring-4 ring-rose-200';
+            else if (showState) cls = 'bg-gray-50 border-gray-200 opacity-60';
+
+            // Detect if option is SVG markup (starts with <svg)
+            const isSvg = typeof opt === 'string' && opt.trim().startsWith('<svg');
+            return (
+              <button key={idx} disabled={picked !== null} onClick={() => choose(idx)}
+                className={`pressable p-4 rounded-2xl border-4 font-semibold text-gray-700 flex items-center justify-center min-h-[90px] relative ${cls}`}>
+                {isSvg ? (
+                  <div dangerouslySetInnerHTML={{ __html: opt }} />
+                ) : (
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center font-display text-indigo-700 flex-shrink-0 text-sm">{String.fromCharCode(65 + idx)}</span>
+                    <span className="flex-1 text-left">{opt}</span>
+                  </div>
+                )}
+                {showState && isCorrect && <Check className="w-6 h-6 text-emerald-600 absolute top-2 right-2" />}
+                {showState && isPicked && !isCorrect && <X className="w-6 h-6 text-rose-600 absolute top-2 right-2" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Explanation on wrong answer */}
+        {showState && picked !== q.correct && q.explain && (
+          <div className="mt-4 bg-amber-50 border-2 border-amber-200 rounded-xl p-3 text-sm text-amber-900">
+            <span className="font-semibold">💡 </span>{q.explain}
+          </div>
+        )}
+      </div>
+    </ActivityShell>
+  );
+}
+
 function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) {
   const theme = THEME[user];
   const meta = SUBJECT_META[subject];
@@ -2427,7 +2974,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
   function narrate(text) {
     stopSpeaking();
     setNarrating(true);
-    speak(text, { rate: 0.9, pitch: 1.0, onend: () => setNarrating(false) });
+    speak(text, { rate: 0.88, pitch: 1.04, narration: true, onend: () => setNarrating(false) });
   }
   function stopNarration() { stopSpeaking(); setNarrating(false); }
 
@@ -2705,7 +3252,7 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
   const sister = user === 'Ava' ? 'Layla' : user === 'Layla' ? 'Ava' : null;
   const them = sister ? THEME[sister] : null;
   const activities = [
-    { id: 'spelling', outOf: 10 }, { id: 'vocab', outOf: 20 }, { id: 'writing', outOf: 10 }, { id: 'math', outOf: 10 }, { id: 'reading', outOf: 4 },
+    { id: 'spelling', outOf: 10 }, { id: 'vocab', outOf: 20 }, { id: 'writing', outOf: 10 }, { id: 'math', outOf: 10 }, { id: 'reading', outOf: 4 }, { id: 'puzzles', outOf: 10 },
     { id: 'history', outOf: 10 }, { id: 'geography', outOf: 10 }, { id: 'science', outOf: 10 }
   ];
   const myDay = progress[user][`day${currentDay}`] || {};
@@ -2805,11 +3352,12 @@ function Leaderboard({ progress, currentDay, setScreen }) {
     { id: 'writing',   emoji: '✏️', outOf: 10 },
     { id: 'math',      emoji: '🧮', outOf: 10 },
     { id: 'reading',   emoji: '📖', outOf: 4  },
+    { id: 'puzzles',   emoji: '🧠', outOf: 10 },
     { id: 'history',   emoji: '🏛️', outOf: 10 },
     { id: 'geography', emoji: '🌍', outOf: 10 },
     { id: 'science',   emoji: '🔬', outOf: 10 }
   ];
-  const baseCompletion = ['spelling','vocab','writing','math','reading'];
+  const baseCompletion = ['spelling','vocab','writing','math','reading','puzzles'];
 
   // Rankings by total points across all days
   const rankings = NAMES.map(name => ({
