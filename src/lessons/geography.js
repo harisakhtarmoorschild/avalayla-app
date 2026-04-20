@@ -105,6 +105,7 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Why should we look after Earth?', options: ['It\'s our only home', 'It\'s shiny', 'For fun', 'The Sun will fall'], correct: 0, cheer: 'Exactly — take care!' }
     ],
     hasVideo: true,
+    videoId: 'IDhapt7nw4A',
     bitesizeQuery: 'earth our planet primary'
   },
 
@@ -138,7 +139,8 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Who lives permanently in Antarctica?', options: ['Farmers', 'No one permanently', 'Cities of people', 'Pirates'], correct: 1, cheer: 'Just visiting scientists.' },
       { q: 'The highest mountain on Earth is in…', options: ['Africa', 'South America', 'Asia', 'Europe'], correct: 2, cheer: 'Everest — in Asia!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: '7yXDYvWSswI',
     bitesizeQuery: 'seven continents world'
   },
 
@@ -173,6 +175,7 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'The biggest animal that ever lived lives in the ocean. What is it?', options: ['Shark', 'Blue whale', 'Octopus', 'Crab'], correct: 1, cheer: 'Huge and gentle!' }
     ],
     hasVideo: true,
+    videoId: 'X6BE4VcYngQ',
     bitesizeQuery: 'oceans of the world'
   },
 
@@ -206,7 +209,8 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Where are most active volcanoes?', options: ['Europe', 'The Ring of Fire (Pacific)', 'Africa', 'Ocean bottom'], correct: 1, cheer: 'Amazing horseshoe shape!' },
       { q: 'Why are mountains important to people?', options: ['They give fresh water', 'They look nice only', 'Nothing much', 'They slow trains'], correct: 0, cheer: 'Rivers start there!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'lAmqsMQG3RM',
     bitesizeQuery: 'mountains volcanoes'
   },
 
@@ -241,6 +245,7 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Why have people always lived near rivers?', options: ['They\'re pretty', 'Water, food, travel, power', 'They\'re cold', 'They\'re warm'], correct: 1, cheer: 'Life-giving!' }
     ],
     hasVideo: true,
+    videoId: 'bNWuQD7QHBc',
     bitesizeQuery: 'rivers source mouth'
   },
 
@@ -273,7 +278,8 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'What natural wonder is in Northern Ireland?', options: ['Giant\'s Causeway', 'Grand Canyon', 'Niagara Falls', 'Loch Ness'], correct: 0, cheer: 'Amazing hexagons!' },
       { q: 'What is the highest mountain in Scotland?', options: ['Snowdon', 'Ben Nevis', 'Scafell', 'Everest'], correct: 1, cheer: 'Correct!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'kU_SpzWKtqE',
     bitesizeQuery: 'united kingdom four countries'
   },
 
@@ -307,6 +313,7 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Which country has the Alps?', options: ['Only Italy', 'Many countries (Switzerland, France, Italy, Austria)', 'Only Switzerland', 'Only Germany'], correct: 1, cheer: 'Shared mountains!' }
     ],
     hasVideo: true,
+    videoId: 'RNx0akt3_XI',
     bitesizeQuery: 'europe countries map'
   },
 
@@ -340,7 +347,8 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Which music style has African roots?', options: ['Classical', 'Jazz and hip-hop', 'Country', 'Opera'], correct: 1, cheer: 'Deep connection!' },
       { q: 'Africa\'s population is mostly…', options: ['Very old', 'Very young', 'Mostly over 70', 'Mostly over 50'], correct: 1, cheer: 'Youthful continent!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'PSYHMWmyVfo',
     bitesizeQuery: 'africa continent countries'
   },
 
@@ -375,6 +383,7 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Which continent is the largest?', options: ['Africa', 'Asia', 'America', 'Europe'], correct: 1, cheer: 'The giant!' }
     ],
     hasVideo: true,
+    videoId: 'nsOtOye-DJM',
     bitesizeQuery: 'asia continent countries'
   },
 
@@ -407,7 +416,8 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'What is the longest mountain range on Earth?', options: ['Rockies', 'Alps', 'Himalayas', 'Andes'], correct: 3, cheer: 'Running down South America!' },
       { q: 'What incredible lost city is in Peru?', options: ['Machu Picchu', 'Pompeii', 'Angkor Wat', 'Troy'], correct: 0, cheer: 'Inca wonder!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'AOUK3Oit86o',
     bitesizeQuery: 'americas north south continent'
   },
 
@@ -442,6 +452,7 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'When it\'s Christmas in the UK, it\'s what season in Australia?', options: ['Winter', 'Spring', 'Summer', 'Autumn'], correct: 2, cheer: 'Beach Christmas!' }
     ],
     hasVideo: true,
+    videoId: 'f0PvMmTAUAQ',
     bitesizeQuery: 'australia oceania continent'
   },
 
@@ -475,7 +486,8 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Why is Antarctica like Earth\'s "refrigerator"?', options: ['It chills the whole planet', 'It stores food', 'It makes ice cream', 'It\'s rectangular'], correct: 0, cheer: 'Cooling effect.' },
       { q: 'What\'s happening to Antarctica because of climate change?', options: ['Growing colder', 'Staying the same', 'Melting', 'Turning green'], correct: 2, cheer: 'That\'s why we must act!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: 'X3uT89xoKuc',
     bitesizeQuery: 'antarctica south pole ice'
   },
 
@@ -510,6 +522,7 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'How long does it take Earth to go around the Sun for a full cycle of seasons?', options: ['1 day', '1 month', '1 year', '10 years'], correct: 2, cheer: 'One year!' }
     ],
     hasVideo: true,
+    videoId: 'YbAWny7FV3w',
     bitesizeQuery: 'weather climate water cycle'
   },
 
@@ -542,7 +555,8 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Which is Earth\'s biggest biome?', options: ['Desert', 'Rainforest', 'Ocean', 'Grassland'], correct: 2, cheer: 'Seventy percent of Earth!' },
       { q: 'What is plankton?', options: ['Tiny ocean creatures', 'A big fish', 'A wave', 'Seaweed'], correct: 0, cheer: 'Start of the food chain!' }
     ],
-    hasVideo: false,
+    hasVideo: true,
+    videoId: '0fb8143ndo8',
     bitesizeQuery: 'biomes habitats rainforest desert'
   },
 
@@ -577,6 +591,7 @@ export const GEOGRAPHY_LESSONS = {
       { q: 'Today, what uses satellites to help with maps?', options: ['Paper maps', 'GPS', 'Old compasses', 'None of these'], correct: 1, cheer: 'Satellites tracking us!' }
     ],
     hasVideo: true,
+    videoId: 'iHEMOdRo5u8',
     bitesizeQuery: 'maps symbols compass'
   }
 };
