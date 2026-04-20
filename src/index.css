@@ -139,6 +139,41 @@ input, textarea { user-select: text; -webkit-user-select: text; }
   pointer-events: none;
 }
 
+/* ---------- SALAHUDDIN'S WORLD — Dino Discovery (prehistoric) ---------- */
+.salah-bg {
+  background:
+    radial-gradient(circle at 15% 20%, #fed7aa 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, #bbf7d0 0%, transparent 40%),
+    radial-gradient(circle at 80% 90%, #fde68a 0%, transparent 40%),
+    radial-gradient(circle at 10% 85%, #fed7aa 0%, transparent 40%),
+    linear-gradient(135deg, #fff7ed 0%, #f0fdf4 100%);
+}
+.salah-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+  border: 2px solid rgba(234, 88, 12, 0.2);
+}
+.salah-gradient { background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #22c55e 100%); }
+.salah-gradient-soft { background: linear-gradient(135deg, #fed7aa 0%, #bbf7d0 100%); }
+.salah-text { color: #9a3412; }
+.salah-accent { color: #c2410c; }
+.salah-pill {
+  background: linear-gradient(135deg, #fed7aa 0%, #bbf7d0 100%);
+  border: 2px solid rgba(234, 88, 12, 0.4);
+  color: #7c2d12;
+}
+
+/* Fossil dots pattern */
+.salah-pattern::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle 4px at 18% 25%, rgba(154, 52, 18, 0.22) 99%, transparent),
+    radial-gradient(circle 3px at 78% 18%, rgba(22, 101, 52, 0.22) 99%, transparent),
+    radial-gradient(circle 5px at 62% 72%, rgba(154, 52, 18, 0.22) 99%, transparent),
+    radial-gradient(circle 3px at 22% 82%, rgba(22, 101, 52, 0.22) 99%, transparent);
+  pointer-events: none;
+}
+
 /* Generic input styling with theme tokens */
 .t-input {
   border: 3px solid var(--theme-border, #fbbf24);
