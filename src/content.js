@@ -9,24 +9,32 @@ export const TOTAL_DAYS = 60;
 
 /* ==========================================================================
    v3: LESSON SUBJECT ROTATION
-   Day-of-week determines which subject lesson appears on the home screen.
-   0=Sunday(off), 1=Mon history, 2=Tue geography, 3=Wed science,
-   4=Thu history, 5=Fri geography, 6=Sat science.
+   Subjects rotate by student's current day number (NOT by real calendar day).
+   Day 1 → history, Day 2 → geography, Day 3 → science, Day 4 → history, …
+   Every study session gets a fresh subject — no more repeated history days.
    ========================================================================== */
 
-// Returns the subject key for a given JS Date (or null on Sundays)
-export function lessonSubjectForDate(date = new Date()) {
-  const dow = date.getDay(); // 0=Sun .. 6=Sat
-  const map = {
-    0: null,          // Sunday — rest day, no lesson activity
-    1: 'history',     // Monday
-    2: 'geography',   // Tuesday
-    3: 'science',     // Wednesday
-    4: 'history',     // Thursday
-    5: 'geography',   // Friday
-    6: 'science'      // Saturday
-  };
-  return map[dow];
+// Rotate subjects by day number, so every study session gets a different subject.
+// Kept the old name lessonSubjectForDate for backward-compat, but now it ignores
+// the argument and callers pass a day number instead. A wrapper helps callers
+// that still pass a Date.
+export function lessonSubjectForDay(day) {
+  const d = Math.max(1, Math.floor(day || 1));
+  const subjects = ['history', 'geography', 'science'];
+  return subjects[(d - 1) % subjects.length];
+}
+
+// Back-compat wrapper. Pass a day number or a Date:
+// - Number  → rotate by day
+// - Date (legacy) → rotate by dayOfYear so it still rotates instead of repeating
+export function lessonSubjectForDate(arg = new Date()) {
+  if (typeof arg === 'number') return lessonSubjectForDay(arg);
+  // Treat a Date as day-of-year to at least spread subjects across the week
+  const d = arg instanceof Date ? arg : new Date();
+  const start = new Date(d.getFullYear(), 0, 0);
+  const diff = d - start;
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return lessonSubjectForDay(dayOfYear);
 }
 
 // Human-friendly subject metadata
