@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Layla's Champions League</title>
+
+  <!-- Apple home-screen icon -->
+  <link rel="apple-touch-icon" href="/layla-icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/layla-icon.png" />
+  <link rel="icon" href="/layla-icon.png" />
+
+  <!-- Apple standalone app metadata -->
+  <meta name="apple-mobile-web-app-title" content="Layla" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    body {
+      background: linear-gradient(135deg, #22c55e 0%, #10b981 50%, #0ea5e9 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: white; text-align: center; padding: 24px;
+    }
+    .wrap { max-width: 480px; }
+    .icon {
+      width: 180px; height: 180px; border-radius: 36px;
+      box-shadow: 0 20px 50px -15px rgba(0,0,0,0.4);
+      margin: 0 auto 28px; display: block;
+    }
+    h1 { font-size: 34px; margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; }
+    p  { font-size: 17px; margin: 10px 0; opacity: 0.95; line-height: 1.5; }
+    .card {
+      background: rgba(255,255,255,0.95); color: #15803d;
+      border-radius: 20px; padding: 18px 20px; margin-top: 24px;
+      text-align: left; font-size: 15px; line-height: 1.55;
+    }
+    .card b { color: #14532d; }
+    .arrow { font-size: 28px; display: inline-block; margin: 0 4px; }
+  </style>
+</head>
+<body>
+  <!-- If launched from the home screen, send straight to the main app with Layla pre-selected. -->
+  <script>
+    (function () {
+      var standalone = window.navigator.standalone === true
+        || window.matchMedia('(display-mode: standalone)').matches;
+      if (standalone) {
+        try { localStorage.setItem('current-user', 'Layla'); } catch (e) {}
+        window.location.replace('/');
+      }
+    })();
+  </script>
+
+  <div class="wrap">
+    <img src="/layla-icon.png" alt="Layla's icon" class="icon" />
+    <h1>Layla's Champions League</h1>
+    <p>Kickoff time! Add this to your home screen:</p>
+    <div class="card">
+      1. Tap the <b>Share</b> button <span class="arrow">⬆️</span> (top of Safari)<br/>
+      2. Scroll down and tap <b>Add to Home Screen</b><br/>
+      3. Tap <b>Add</b> — game on! ⚽🏆
+    </div>
+  </div>
+</body>
+</html>
