@@ -45,3 +45,64 @@ export async function cacheStory(day, story) {
     await setDoc(ref, story);
   } catch (e) { console.error(e); }
 }
+
+// v3: Shared lesson cache — both sisters see the same subject lesson per day
+export async function getCachedLesson(subject, day) {
+  try {
+    const ref = doc(db, 'lessons', `${subject}-day${day}`);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  } catch (e) { console.error(e); return null; }
+}
+export async function cacheLesson(subject, day, lesson) {
+  try {
+    const ref = doc(db, 'lessons', `${subject}-day${day}`);
+    await setDoc(ref, lesson);
+  } catch (e) { console.error(e); }
+}
+
+// v3.2: In-progress state (save & resume).
+// Stored under progress/<user> as { inProgress: { spelling: {...}, math: {...} } }
+// Kept inside the same progress doc so we don't need a new collection.
+export async function saveInProgress(name, activity, state) {
+  try {
+    const ref = doc(db, 'progress', name);
+    // Use dot-path so we only touch the one activity's sub-object
+    const patch = { inProgress: { [activity]: { ...state, savedAt: Date.now() } } };
+    await setDoc(ref, patch, { merge: true });
+  } catch (e) { console.error('saveInProgress', e); }
+}
+
+export async function loadInProgress(name, activity) {
+  try {
+    const ref = doc(db, 'progress', name);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    const inProg = data && data.inProgress && data.inProgress[activity];
+    return inProg || null;
+  } catch (e) { console.error('loadInProgress', e); return null; }
+}
+
+export async function clearInProgress(name, activity) {
+  try {
+    const ref = doc(db, 'progress', name);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() || {};
+    const inProg = { ...(data.inProgress || {}) };
+    delete inProg[activity];
+    await setDoc(ref, { inProgress: inProg }, { merge: true });
+  } catch (e) { console.error('clearInProgress', e); }
+}
+
+// Load all in-progress activities for a user (for Home screen indicators)
+export async function loadAllInProgress(name) {
+  try {
+    const ref = doc(db, 'progress', name);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return {};
+    const data = snap.data() || {};
+    return data.inProgress || {};
+  } catch (e) { console.error('loadAllInProgress', e); return {}; }
+}
