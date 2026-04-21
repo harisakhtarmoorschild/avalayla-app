@@ -7,7 +7,8 @@ import {
 import {
   loadProgress, saveProgress, subscribeProgress, getCachedStory, cacheStory,
   getCachedLesson, cacheLesson,
-  saveInProgress, loadInProgress, clearInProgress, loadAllInProgress
+  saveInProgress, loadInProgress, clearInProgress, loadAllInProgress,
+  cleanProgress
 } from './firebase.js';
 import {
   TOTAL_DAYS, SPELLING_BANK, VOCAB_BANK, WRITING_PROMPTS, FALLBACK_STORIES,
@@ -797,6 +798,8 @@ function ParentDashboard({ progress, onBack }) {
   const [pinChanging, setPinChanging] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [pinSaved, setPinSaved] = useState(false);
+  const [cleaningFor, setCleaningFor] = useState(null); // name being cleaned or null
+  const [cleanResult, setCleanResult] = useState(null);  // { name, removedKeys, fixedValues } or null
 
   const TODAY_ACTIVITIES = ['spelling','vocab','writing','math','reading','puzzles'];
   const SUBJECT_ACTIVITIES = ['history','geography','science'];
@@ -816,22 +819,24 @@ function ParentDashboard({ progress, onBack }) {
     const byActivity = {};
     TODAY_ACTIVITIES.concat(SUBJECT_ACTIVITIES).forEach(a => byActivity[a] = { points: 0, attempts: 0, avgPct: 0 });
     for (const key in userProgress) {
-      if (!key.startsWith('day')) continue;
+      if (!isDayKey(key)) continue;
       const day = userProgress[key];
       if (!day || typeof day !== 'object') continue;
       let dayComplete = true;
       TODAY_ACTIVITIES.forEach(a => {
         if (day[a] !== undefined) {
-          byActivity[a].points += day[a];
+          const v = num(day[a]);
+          byActivity[a].points += v;
           byActivity[a].attempts += 1;
-          total += day[a];
+          total += v;
         } else dayComplete = false;
       });
       SUBJECT_ACTIVITIES.forEach(a => {
         if (day[a] !== undefined) {
-          byActivity[a].points += day[a];
+          const v = num(day[a]);
+          byActivity[a].points += v;
           byActivity[a].attempts += 1;
-          total += day[a];
+          total += v;
         }
       });
       if (dayComplete) days++;
@@ -1002,6 +1007,47 @@ function ParentDashboard({ progress, onBack }) {
           </div>
         </div>
 
+        {/* Data cleanup — removes legacy corrupted entries from Firestore */}
+        <div className="bg-white kid-shadow rounded-[1.5rem] p-5 md:p-6 mb-6">
+          <div className="font-display text-xl font-bold text-gray-800 mb-1 flex items-center gap-2">
+            🧹 Data cleanup
+          </div>
+          <div className="text-xs text-gray-500 mb-3">If a child's leaderboard or profile shows "[object Object]" or weird numbers, their progress record has legacy garbage from an earlier bug. Tap below to scrub it. <strong>Real scores are preserved</strong> — only invalid entries are removed.</div>
+          <div className="grid md:grid-cols-3 gap-3">
+            {NAMES.map(n => (
+              <button key={n} disabled={cleaningFor === n}
+                onClick={async () => {
+                  if (!confirm(`Clean ${n}'s data? Real scores are kept; only corrupted entries will be removed. This cannot be undone.`)) return;
+                  setCleaningFor(n);
+                  setCleanResult(null);
+                  const r = await cleanProgress(n);
+                  setCleaningFor(null);
+                  setCleanResult({ name: n, ...r });
+                }}
+                className="pressable bg-gray-50 hover:bg-gray-100 rounded-xl p-3 text-sm font-semibold border border-gray-200 disabled:opacity-50">
+                {cleaningFor === n ? 'Cleaning…' : `Clean ${n}'s data`}
+              </button>
+            ))}
+          </div>
+          {cleanResult && (
+            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-900">
+              {cleanResult.error ? (
+                <span>⚠️ Error: {cleanResult.error}</span>
+              ) : (
+                <>
+                  ✅ Cleaned {cleanResult.name}'s data.
+                  {cleanResult.removedKeys && cleanResult.removedKeys.length > 0 && (
+                    <> Removed {cleanResult.removedKeys.length} bad key{cleanResult.removedKeys.length > 1 ? 's' : ''} <span className="text-emerald-700 font-mono text-xs">({cleanResult.removedKeys.join(', ')})</span>.</>
+                  )}
+                  {cleanResult.fixedValues > 0 && <> Fixed {cleanResult.fixedValues} invalid value{cleanResult.fixedValues > 1 ? 's' : ''}.</>}
+                  {(!cleanResult.removedKeys || cleanResult.removedKeys.length === 0) && !cleanResult.fixedValues && <> Nothing to clean — record was already healthy.</>}
+                  {' '}Refresh the app on their iPad to see the corrected view.
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Change PIN modal */}
         {pinChanging && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50" onClick={() => setPinChanging(false)}>
@@ -1034,18 +1080,32 @@ function ParentDashboard({ progress, onBack }) {
   );
 }
 
+// Robust day-key check: only include keys that match /^day\d+$/ exactly.
+// Ignore legacy garbage like 'dayhistory', 'inProgress', etc.
+function isDayKey(k) {
+  return /^day\d+$/.test(k);
+}
+// Coerce any stored score to a sane number. Handles legacy corruption where
+// an activity field might accidentally be an object.
+function num(v) {
+  if (typeof v === 'number' && !isNaN(v)) return v;
+  if (typeof v === 'string') { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  return 0;
+}
+
 function totalPoints(userProgress) {
   if (!userProgress) return 0;
   let t = 0;
   for (const k in userProgress) {
+    if (!isDayKey(k)) continue;
     const d = userProgress[k]; if (!d || typeof d !== 'object') continue;
-    t += (d.spelling || 0) + (d.vocab || 0) + (d.writing || 0) + (d.math || 0) + (d.reading || 0) + (d.puzzles || 0);
+    t += num(d.spelling) + num(d.vocab) + num(d.writing) + num(d.math) + num(d.reading) + num(d.puzzles);
   }
   return t;
 }
 function dayPoints(dayObj, activities) {
   if (!dayObj) return 0;
-  return activities.reduce((s, a) => s + (dayObj[a.id] || 0), 0);
+  return activities.reduce((s, a) => s + num(dayObj[a.id]), 0);
 }
 
 /* ------ Adaptive difficulty ------
@@ -3471,7 +3531,13 @@ function LeaderCell({ name, data, sum, done, activities }) {
         <span className="font-display font-bold text-lg">{sum}{done && ' ✓'}</span>
       </div>
       <div className="text-xs space-x-1 truncate opacity-80">
-        {activities.map(a => <span key={a.id}>{a.emoji}{data[a.id] ?? '–'}</span>)}
+        {activities.map(a => {
+          const v = data[a.id];
+          const display = (v === undefined || v === null) ? '–'
+                        : (typeof v === 'number' || typeof v === 'string') ? v
+                        : '–'; // object or other — show dash, don't crash
+          return <span key={a.id}>{a.emoji}{display}</span>;
+        })}
       </div>
     </div>
   );
