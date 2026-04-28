@@ -174,6 +174,41 @@ input, textarea { user-select: text; -webkit-user-select: text; }
   pointer-events: none;
 }
 
+/* ---------- SHYAL'S WORLD — Dran Sword Stadium (Beyblade X) ---------- */
+.shyal-bg {
+  background:
+    radial-gradient(circle at 15% 20%, #fecaca 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, #fee2e2 0%, transparent 40%),
+    radial-gradient(circle at 80% 90%, #fde68a 0%, transparent 35%),
+    radial-gradient(circle at 10% 85%, #fecaca 0%, transparent 40%),
+    linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+}
+.shyal-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+  border: 2px solid rgba(220, 38, 38, 0.2);
+}
+.shyal-gradient { background: linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #1f2937 100%); }
+.shyal-gradient-soft { background: linear-gradient(135deg, #fecaca 0%, #fde68a 100%); }
+.shyal-text { color: #b91c1c; }
+.shyal-accent { color: #dc2626; }
+.shyal-pill {
+  background: linear-gradient(135deg, #fecaca 0%, #fde68a 100%);
+  border: 2px solid rgba(220, 38, 38, 0.4);
+  color: #7f1d1d;
+}
+
+/* Crossed-X / spinner pattern */
+.shyal-pattern::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(45deg, transparent 48%, rgba(220, 38, 38, 0.18) 49%, rgba(220, 38, 38, 0.18) 51%, transparent 52%),
+    linear-gradient(-45deg, transparent 48%, rgba(220, 38, 38, 0.18) 49%, rgba(220, 38, 38, 0.18) 51%, transparent 52%);
+  background-size: 60px 60px;
+  background-position: 0 0, 30px 30px;
+  pointer-events: none;
+}
+
 /* Generic input styling with theme tokens */
 .t-input {
   border: 3px solid var(--theme-border, #fbbf24);
