@@ -19,7 +19,7 @@ import { getVerbalQuestionsForDay, getNonVerbalQuestionsForDay } from './content
 import { sfx, primeAudio } from './sounds.js';
 import LessonAnimation from './animations.jsx';
 
-const NAMES = ['Ava', 'Layla', 'Salahuddin'];
+const NAMES = ['Ava', 'Layla', 'Salahuddin', 'Shyal'];
 const SISTER_NAMES = ['Ava', 'Layla'];
 
 /* ============================================================
@@ -88,6 +88,27 @@ const THEME = {
     wrongLine: ['Keep hunting!', 'Try again, explorer!', 'Nearly unearthed!', 'Dig deeper!'],
     decorBg: ['🦖','🦕','🌋','🦴'],
     tokens: { '--theme-border': '#fdba74', '--theme-border-strong': '#ea580c', '--theme-input-bg': '#fff7ed' }
+  },
+  Shyal: {
+    name: 'Shyal',
+    emoji: '⚔️',
+    mascotEmoji: '🐉',
+    worldName: 'Dran Sword Stadium',
+    tagline: 'Let it RIP, champion!',
+    bgClass: 'shyal-bg',
+    cardClass: 'shyal-card',
+    gradient: 'shyal-gradient',
+    gradientSoft: 'shyal-gradient-soft',
+    text: 'shyal-text',
+    accent: 'shyal-accent',
+    pill: 'shyal-pill',
+    pattern: 'shyal-pattern',
+    font: 'font-sport',
+    decor: ['⚔️', '🐉', '🌀', '⚡', '🔥', '💥'],
+    correctLine: ['Let it RIP!', 'X-treme finish!', 'Burst victory!', 'Stadium champion!', 'Dran Sword power!'],
+    wrongLine: ['Re-launch!', 'Steady the bey!', 'Spin again!', 'Reset the stadium!'],
+    decorBg: ['⚔️','🐉','🌀','⚡'],
+    tokens: { '--theme-border': '#fca5a5', '--theme-border-strong': '#dc2626', '--theme-input-bg': '#fef2f2' }
   }
 };
 
@@ -539,10 +560,73 @@ function SalahuddinMascot({ mood = 'idle', size = 120 }) {
   );
 }
 
+function ShyalMascot({ mood = 'idle', size = 120 }) {
+  const bounce = mood === 'happy' ? 'bounce-in' : '';
+  const sway = mood === 'idle' ? 'floaty' : '';
+  return (
+    <svg viewBox="0 0 140 130" width={size} height={size * 130 / 140} className={bounce}>
+      {/* Stadium ground */}
+      <ellipse cx="70" cy="118" rx="50" ry="6" fill="#1f2937" opacity="0.25" />
+      <ellipse cx="70" cy="118" rx="38" ry="4" fill="#dc2626" opacity="0.35" />
+      <g className={sway} style={{transformOrigin:'70px 70px'}}>
+        {/* Spin streaks behind bey */}
+        <ellipse cx="70" cy="78" rx="48" ry="5" fill="#fca5a5" opacity="0.55" />
+        <ellipse cx="70" cy="82" rx="42" ry="3" fill="#fecaca" opacity="0.5" />
+        {/* Bey outer ring (stadium-ring chrome) */}
+        <ellipse cx="70" cy="70" rx="40" ry="12" fill="#1f2937" stroke="#0f172a" strokeWidth="2" />
+        <ellipse cx="70" cy="68" rx="40" ry="12" fill="#dc2626" stroke="#7f1d1d" strokeWidth="2" />
+        {/* Inner disc */}
+        <ellipse cx="70" cy="66" rx="30" ry="8" fill="#0f172a" stroke="#7f1d1d" strokeWidth="1.5" />
+        {/* Crossed swords X on the disc */}
+        <line x1="50" y1="56" x2="90" y2="76" stroke="#e5e7eb" strokeWidth="3" strokeLinecap="round" />
+        <line x1="90" y1="56" x2="50" y2="76" stroke="#e5e7eb" strokeWidth="3" strokeLinecap="round" />
+        {/* Center medallion */}
+        <circle cx="70" cy="66" r="7" fill="#fde047" stroke="#dc2626" strokeWidth="1.5" />
+        <text x="70" y="69" fontSize="9" textAnchor="middle" fontWeight="bold" fill="#7f1d1d">X</text>
+        {/* Dragon head perched on top of bey */}
+        <g transform="translate(70 38)">
+          {/* Head */}
+          <ellipse cx="0" cy="0" rx="20" ry="15" fill="#dc2626" stroke="#7f1d1d" strokeWidth="2" />
+          {/* Horns */}
+          <polygon points="-10,-12 -7,-22 -3,-12" fill="#fde047" stroke="#a16207" strokeWidth="1" />
+          <polygon points="3,-12 7,-22 10,-12" fill="#fde047" stroke="#a16207" strokeWidth="1" />
+          {/* Snout */}
+          <ellipse cx="14" cy="3" rx="9" ry="6" fill="#dc2626" stroke="#7f1d1d" strokeWidth="1.5" />
+          {/* Nostril */}
+          <circle cx="20" cy="2" r="1.2" fill="#0f172a" />
+          {/* Eye + mood */}
+          {mood === 'happy' ? (
+            <>
+              <circle cx="4" cy="-2" r="3.5" fill="white" />
+              <circle cx="5" cy="-2" r="2" fill="#0f172a" />
+              <path d="M 9 5 Q 14 9 20 5" stroke="#7f1d1d" strokeWidth="1.5" fill="none" />
+            </>
+          ) : mood === 'sad' ? (
+            <>
+              <circle cx="4" cy="-2" r="3.5" fill="white" />
+              <circle cx="5" cy="0" r="2" fill="#0f172a" />
+              <path d="M 11 7 Q 14 4 18 7" stroke="#7f1d1d" strokeWidth="1.5" fill="none" />
+            </>
+          ) : (
+            <>
+              <circle cx="4" cy="-2" r="3.5" fill="white" />
+              <circle cx="5" cy="-1" r="2" fill="#0f172a" />
+            </>
+          )}
+        </g>
+      </g>
+      {/* Lightning sparks on horizon */}
+      <text x="14" y="30" fontSize="16">⚡</text>
+      <text x="112" y="30" fontSize="16">🔥</text>
+    </svg>
+  );
+}
+
 function Mascot({ who, mood, size }) {
   if (who === 'Ava') return <AvaMascot mood={mood} size={size} />;
   if (who === 'Layla') return <LaylaMascot mood={mood} size={size} />;
   if (who === 'Salahuddin') return <SalahuddinMascot mood={mood} size={size} />;
+  if (who === 'Shyal') return <ShyalMascot mood={mood} size={size} />;
   return <AvaMascot mood={mood} size={size} />;
 }
 
@@ -620,12 +704,12 @@ export default function App() {
   // Day progression rules:
   // - Ava and Layla progress together — Day N+1 unlocks only when BOTH finish Day N
   //   (they compete side-by-side, so staying in sync matters for them)
-  // - Salahuddin progresses independently — his Day N+1 unlocks when HE finishes Day N
-  //   (so if he loses interest, he never holds back the sisters, and they never hold him back)
+  // - Solo users (Salahuddin, Shyal) progress independently — their Day N+1 unlocks when THEY finish Day N
+  //   (so if one loses interest, they never hold back the sisters, and the sisters never hold them back)
   const currentDay = useMemo(() => {
     if (!user) return 1;
     let d = 1;
-    if (user === 'Salahuddin') {
+    if (!SISTER_NAMES.includes(user)) {
       while (d < TOTAL_DAYS && isDayComplete(user, d)) d++;
     } else {
       while (d < TOTAL_DAYS && isDayComplete('Ava', d) && isDayComplete('Layla', d)) d++;
@@ -720,18 +804,20 @@ function ProfileSelection({ onSelect, progress }) {
   return (
     <div className="font-body min-h-screen w-full ava-bg flex flex-col items-center justify-center p-6">
       <div className="text-center mb-10 pop-in">
-        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ 🦖</div>
+        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ 🦖 ⚔️</div>
         <h1 className="font-display text-4xl md:text-6xl font-bold leading-tight cursor-pointer select-none" onClick={handleTitleTap}>
           <span className="ava-text">Ava</span>
           <span className="text-gray-400">, </span>
           <span className="layla-text">Layla</span>
-          <span className="text-gray-400"> &amp; </span>
+          <span className="text-gray-400">, </span>
           <span className="salah-text">Salahuddin</span>
+          <span className="text-gray-400"> &amp; </span>
+          <span className="shyal-text">Shyal</span>
         </h1>
         <h2 className="font-display text-3xl md:text-5xl font-semibold text-purple-700 mt-1">Learn Together!</h2>
         <p className="mt-4 text-lg text-gray-600 font-medium">Who's playing today?</p>
       </div>
-      <div className="grid md:grid-cols-3 gap-6 w-full max-w-5xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl">
         {NAMES.map((n) => {
           const t = THEME[n];
           const totalPts = totalPoints(progress[n]);
@@ -3325,9 +3411,10 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
 
   let headline, sub;
   if (!sister) {
-    // Salahuddin solo celebration
-    headline = `Brilliant, ${user}! You finished Day ${currentDay}! 🦖`;
-    sub = `You scored ${my} out of ${dayMax}. Dino-mite work — onwards to the next adventure!`;
+    // Solo celebration (Salahuddin, Shyal, etc.) — uses the user's own theme phrasing
+    const cheer = me.correctLine[0] || 'Amazing!';
+    headline = `Brilliant, ${user}! You finished Day ${currentDay}! ${me.mascotEmoji}`;
+    sub = `You scored ${my} out of ${dayMax}. ${cheer} Onwards to the next adventure!`;
   } else if (!bothDone) {
     headline = `Brilliant, ${user}! You finished Day ${currentDay}! 🎉`;
     sub = `Waiting for ${sister} to catch up…`;
