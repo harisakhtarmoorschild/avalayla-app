@@ -19,7 +19,7 @@ import { getVerbalQuestionsForDay, getNonVerbalQuestionsForDay } from './content
 import { sfx, primeAudio } from './sounds.js';
 import LessonAnimation from './animations.jsx';
 
-const NAMES = ['Ava', 'Layla', 'Salahuddin', 'Shyal'];
+const NAMES = ['Ava', 'Layla', 'Salahuddin', 'Shyal', 'Albie'];
 const SISTER_NAMES = ['Ava', 'Layla'];
 
 /* ============================================================
@@ -109,6 +109,27 @@ const THEME = {
     wrongLine: ['Re-launch!', 'Steady the bey!', 'Spin again!', 'Reset the stadium!'],
     decorBg: ['⚔️','🐉','🌀','⚡'],
     tokens: { '--theme-border': '#fca5a5', '--theme-border-strong': '#dc2626', '--theme-input-bg': '#fef2f2' }
+  },
+  Albie: {
+    name: 'Albie',
+    emoji: '🦁',
+    mascotEmoji: '🦁',
+    worldName: 'Pride Rock Kingdom',
+    tagline: 'Roar like a king, cub!',
+    bgClass: 'albie-bg',
+    cardClass: 'albie-card',
+    gradient: 'albie-gradient',
+    gradientSoft: 'albie-gradient-soft',
+    text: 'albie-text',
+    accent: 'albie-accent',
+    pill: 'albie-pill',
+    pattern: 'albie-pattern',
+    font: 'font-display',
+    decor: ['🦁', '🌞', '🌿', '✨', '🐾', '🌟'],
+    correctLine: ['Roar-some!', 'Pride Lands champion!', 'Hakuna Matata!', 'Mufasa would be proud!', 'Future king!'],
+    wrongLine: ['Even kings practice!', 'Stay strong, cub!', 'Look up at the stars!', 'Try again, little lion!'],
+    decorBg: ['🦁','🌞','✨','🌿'],
+    tokens: { '--theme-border': '#fcd34d', '--theme-border-strong': '#d97706', '--theme-input-bg': '#fffbeb' }
   }
 };
 
@@ -622,11 +643,97 @@ function ShyalMascot({ mood = 'idle', size = 120 }) {
   );
 }
 
+function AlbieMascot({ mood = 'idle', size = 120 }) {
+  const bounce = mood === 'happy' ? 'bounce-in' : '';
+  const sway = mood === 'idle' ? 'floaty' : '';
+  return (
+    <svg viewBox="0 0 140 130" width={size} height={size * 130 / 140} className={bounce}>
+      {/* Savanna ground */}
+      <ellipse cx="70" cy="120" rx="55" ry="6" fill="#92400e" opacity="0.3" />
+      {/* Sun glow behind lion */}
+      <circle cx="70" cy="62" r="48" fill="#fde68a" opacity="0.55" />
+      <g className={sway} style={{transformOrigin:'70px 70px'}}>
+        {/* Mane — outer spikes */}
+        <g>
+          {Array.from({length: 18}).map((_, i) => {
+            const a = (i * 360 / 18) * Math.PI / 180;
+            const cx = 70 + Math.cos(a) * 38;
+            const cy = 70 + Math.sin(a) * 38;
+            const tx = 70 + Math.cos(a) * 50;
+            const ty = 70 + Math.sin(a) * 50;
+            const ax = 70 + Math.cos(a - 0.18) * 38;
+            const ay = 70 + Math.sin(a - 0.18) * 38;
+            const bx = 70 + Math.cos(a + 0.18) * 38;
+            const by = 70 + Math.sin(a + 0.18) * 38;
+            return <polygon key={i} points={`${ax},${ay} ${bx},${by} ${tx},${ty}`} fill="#b45309" stroke="#92400e" strokeWidth="0.5" />;
+          })}
+        </g>
+        {/* Mane base disc */}
+        <circle cx="70" cy="70" r="38" fill="#d97706" />
+        {/* Inner mane lighter */}
+        <circle cx="70" cy="70" r="32" fill="#f59e0b" />
+        {/* Face */}
+        <ellipse cx="70" cy="70" rx="26" ry="22" fill="#fcd34d" stroke="#92400e" strokeWidth="1.5" />
+        {/* Cheek tufts */}
+        <ellipse cx="55" cy="78" rx="10" ry="6" fill="#fef3c7" opacity="0.85" />
+        <ellipse cx="85" cy="78" rx="10" ry="6" fill="#fef3c7" opacity="0.85" />
+        {/* Ears */}
+        <ellipse cx="50" cy="48" rx="9" ry="8" fill="#d97706" stroke="#92400e" strokeWidth="1" />
+        <ellipse cx="90" cy="48" rx="9" ry="8" fill="#d97706" stroke="#92400e" strokeWidth="1" />
+        <ellipse cx="50" cy="48" rx="5" ry="4" fill="#92400e" />
+        <ellipse cx="90" cy="48" rx="5" ry="4" fill="#92400e" />
+        {/* Brow ridges (regal Mufasa look) */}
+        <path d="M 56 60 Q 62 56 68 59" stroke="#78350f" strokeWidth="1.5" fill="none" />
+        <path d="M 72 59 Q 78 56 84 60" stroke="#78350f" strokeWidth="1.5" fill="none" />
+        {/* Eyes + mood */}
+        {mood === 'happy' ? (
+          <>
+            <ellipse cx="62" cy="66" rx="3.5" ry="2.5" fill="#fffbeb" />
+            <ellipse cx="78" cy="66" rx="3.5" ry="2.5" fill="#fffbeb" />
+            <circle cx="62" cy="66" r="1.5" fill="#1c1917" />
+            <circle cx="78" cy="66" r="1.5" fill="#1c1917" />
+            <path d="M 60 80 Q 70 86 80 80" stroke="#78350f" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </>
+        ) : mood === 'sad' ? (
+          <>
+            <ellipse cx="62" cy="68" rx="3" ry="2" fill="#fffbeb" />
+            <ellipse cx="78" cy="68" rx="3" ry="2" fill="#fffbeb" />
+            <circle cx="62" cy="68" r="1.2" fill="#1c1917" />
+            <circle cx="78" cy="68" r="1.2" fill="#1c1917" />
+            <path d="M 62 84 Q 70 80 78 84" stroke="#78350f" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </>
+        ) : (
+          <>
+            <ellipse cx="62" cy="66" rx="3.5" ry="2.5" fill="#fffbeb" />
+            <ellipse cx="78" cy="66" rx="3.5" ry="2.5" fill="#fffbeb" />
+            <circle cx="62" cy="66" r="1.5" fill="#1c1917" />
+            <circle cx="78" cy="66" r="1.5" fill="#1c1917" />
+            <line x1="64" y1="82" x2="76" y2="82" stroke="#78350f" strokeWidth="2" strokeLinecap="round" />
+          </>
+        )}
+        {/* Snout */}
+        <ellipse cx="70" cy="80" rx="9" ry="5" fill="#fef3c7" stroke="#92400e" strokeWidth="1" />
+        {/* Nose */}
+        <polygon points="67,77 73,77 70,81" fill="#1c1917" />
+        {/* Whisker dots */}
+        <circle cx="63" cy="80" r="0.8" fill="#92400e" />
+        <circle cx="63" cy="82" r="0.8" fill="#92400e" />
+        <circle cx="77" cy="80" r="0.8" fill="#92400e" />
+        <circle cx="77" cy="82" r="0.8" fill="#92400e" />
+      </g>
+      {/* Stars (Mufasa in the sky) */}
+      <text x="14" y="22" fontSize="14">✨</text>
+      <text x="112" y="22" fontSize="14">⭐</text>
+    </svg>
+  );
+}
+
 function Mascot({ who, mood, size }) {
   if (who === 'Ava') return <AvaMascot mood={mood} size={size} />;
   if (who === 'Layla') return <LaylaMascot mood={mood} size={size} />;
   if (who === 'Salahuddin') return <SalahuddinMascot mood={mood} size={size} />;
   if (who === 'Shyal') return <ShyalMascot mood={mood} size={size} />;
+  if (who === 'Albie') return <AlbieMascot mood={mood} size={size} />;
   return <AvaMascot mood={mood} size={size} />;
 }
 
@@ -804,20 +911,22 @@ function ProfileSelection({ onSelect, progress }) {
   return (
     <div className="font-body min-h-screen w-full ava-bg flex flex-col items-center justify-center p-6">
       <div className="text-center mb-10 pop-in">
-        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ 🦖 ⚔️</div>
-        <h1 className="font-display text-4xl md:text-6xl font-bold leading-tight cursor-pointer select-none" onClick={handleTitleTap}>
+        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ 🦖 ⚔️ 🦁</div>
+        <h1 className="font-display text-3xl md:text-5xl font-bold leading-tight cursor-pointer select-none" onClick={handleTitleTap}>
           <span className="ava-text">Ava</span>
           <span className="text-gray-400">, </span>
           <span className="layla-text">Layla</span>
           <span className="text-gray-400">, </span>
           <span className="salah-text">Salahuddin</span>
-          <span className="text-gray-400"> &amp; </span>
+          <span className="text-gray-400">, </span>
           <span className="shyal-text">Shyal</span>
+          <span className="text-gray-400"> &amp; </span>
+          <span className="albie-text">Albie</span>
         </h1>
         <h2 className="font-display text-3xl md:text-5xl font-semibold text-purple-700 mt-1">Learn Together!</h2>
         <p className="mt-4 text-lg text-gray-600 font-medium">Who's playing today?</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 w-full max-w-7xl">
         {NAMES.map((n) => {
           const t = THEME[n];
           const totalPts = totalPoints(progress[n]);
