@@ -1,5 +1,12 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  getFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  waitForPendingWrites,
+  doc, getDoc, setDoc, onSnapshot
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDR-73wZQcSGD24BQX96cchCtMgBq7dZDc",
@@ -11,7 +18,72 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Durable Firestore client:
+//   - persistentLocalCache stores reads in IndexedDB so the app keeps
+//     working through network blips and feels instant.
+//   - It also queues writes locally. If a kid closes the tab or the iPad
+//     goes to sleep mid-save, the write is replayed when the app reopens
+//     — no more "I did this work already, why is it gone?"
+//   - persistentMultipleTabManager makes this safe when two iPads/tabs
+//     hit the cache concurrently.
+// If the browser refuses persistence (very old Safari, private window
+// with cookies disabled, etc.), initializeFirestore falls back to memory
+// cache for that session.
+let _db;
+try {
+  _db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch (e) {
+  // initializeFirestore throws if called twice (e.g. HMR), or if the
+  // browser refuses IndexedDB. Fall back to the in-memory/default client
+  // so the app still works (just without offline cache for this session).
+  console.warn('persistent cache unavailable, falling back', e && e.message);
+  _db = getFirestore(app);
+}
+export const db = _db;
+
+// --- Resilient write helper ---
+// Firestore's persistent cache already retries internally, but we add a
+// thin retry loop on top of setDoc itself so caller errors (transient
+// 503s, brief offline-but-no-cache) don't bubble up to the kid as a
+// silent failure. Each write is attempted up to 3 times with exponential
+// backoff (200ms, 800ms, 3.2s), then logged if all attempts fail.
+async function setDocWithRetry(ref, data, options) {
+  const delays = [200, 800, 3200];
+  let lastErr;
+  for (let i = 0; i <= delays.length; i++) {
+    try {
+      if (options) await setDoc(ref, data, options);
+      else await setDoc(ref, data);
+      return;
+    } catch (e) {
+      lastErr = e;
+      if (i < delays.length) {
+        await new Promise(r => setTimeout(r, delays[i]));
+      }
+    }
+  }
+  console.error('setDoc failed after retries', ref.path, lastErr);
+  throw lastErr;
+}
+
+// Best-effort flush on background/close. The persistent cache already
+// keeps writes durable through tab close, but flushing here makes the
+// pending-writes indicator settle and shortens the gap between "kid
+// finishes activity" and "data is in Firestore".
+if (typeof window !== 'undefined') {
+  const flush = () => {
+    try { waitForPendingWrites(_db).catch(() => {}); } catch (_) {}
+  };
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flush();
+  });
+}
 
 export async function loadProgress(name) {
   try {
@@ -23,7 +95,7 @@ export async function loadProgress(name) {
 export async function saveProgress(name, partial) {
   try {
     const ref = doc(db, 'progress', name);
-    await setDoc(ref, partial, { merge: true });
+    await setDocWithRetry(ref, partial, { merge: true });
   } catch (e) { console.error('saveProgress', e); }
 }
 export function subscribeProgress(name, callback) {
@@ -73,7 +145,7 @@ export async function cleanProgress(name) {
       }
     }
     // Overwrite document (not merge — we want to remove the bad keys)
-    await setDoc(ref, clean);
+    await setDocWithRetry(ref, clean);
     return { removedKeys, fixedValues };
   } catch (e) {
     console.error('cleanProgress', e);
@@ -92,7 +164,7 @@ export async function getCachedStory(day) {
 export async function cacheStory(day, story) {
   try {
     const ref = doc(db, 'stories', `day${day}`);
-    await setDoc(ref, story);
+    await setDocWithRetry(ref, story);
   } catch (e) { console.error(e); }
 }
 
@@ -107,7 +179,7 @@ export async function getCachedLesson(subject, day) {
 export async function cacheLesson(subject, day, lesson) {
   try {
     const ref = doc(db, 'lessons', `${subject}-day${day}`);
-    await setDoc(ref, lesson);
+    await setDocWithRetry(ref, lesson);
   } catch (e) { console.error(e); }
 }
 
@@ -119,7 +191,7 @@ export async function saveInProgress(name, activity, state) {
     const ref = doc(db, 'progress', name);
     // Use dot-path so we only touch the one activity's sub-object
     const patch = { inProgress: { [activity]: { ...state, savedAt: Date.now() } } };
-    await setDoc(ref, patch, { merge: true });
+    await setDocWithRetry(ref, patch, { merge: true });
   } catch (e) { console.error('saveInProgress', e); }
 }
 
@@ -142,7 +214,7 @@ export async function clearInProgress(name, activity) {
     const data = snap.data() || {};
     const inProg = { ...(data.inProgress || {}) };
     delete inProg[activity];
-    await setDoc(ref, { inProgress: inProg }, { merge: true });
+    await setDocWithRetry(ref, { inProgress: inProg }, { merge: true });
   } catch (e) { console.error('clearInProgress', e); }
 }
 
