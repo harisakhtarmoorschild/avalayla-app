@@ -1742,6 +1742,14 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
   // eslint-disable-next-line
   }, [R.phase]);
 
+  // Autosave on every advance so closing the tab never loses work
+  useEffect(() => {
+    if (R.phase !== 'ready' || done) return;
+    if (step === 0 && results.length === 0) return; // nothing meaningful yet
+    R.save({ step, input, results, tipsByWord });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, results]);
+
   function saveAndExit() {
     sfx.pop();
     R.save({ step, input, results, tipsByWord });
@@ -2062,6 +2070,15 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
     }
   // eslint-disable-next-line
   }, [R.phase]);
+
+  // Autosave on every advance so closing the tab never loses work
+  useEffect(() => {
+    if (R.phase !== 'ready' || done) return;
+    if (step === 0 && results.length === 0) return;
+    R.save({ step, results });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, results]);
+
   function saveAndExit() { sfx.pop(); R.save({ step, results }); setScreen('home'); }
 
   function choose(idx) {
@@ -2193,6 +2210,15 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
     }
   // eslint-disable-next-line
   }, [R.phase]);
+  // Autosave the writing on every change, debounced 1s so we don't write per keystroke
+  useEffect(() => {
+    if (R.phase !== 'ready') return;
+    if (!text || text.trim().length < 3) return;
+    const t = setTimeout(() => R.save({ text }), 1000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
+
   function saveAndExit() { sfx.pop(); R.save({ text }); setScreen('home'); }
 
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
@@ -2325,6 +2351,14 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
     }
   // eslint-disable-next-line
   }, [R.phase]);
+  // Autosave on every advance so closing the tab never loses work
+  useEffect(() => {
+    if (R.phase !== 'ready' || done) return;
+    if (step === 0 && results.length === 0) return;
+    R.save({ step, results, explanations });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, results, explanations]);
+
   function saveAndExit() { sfx.pop(); R.save({ step, results, explanations }); setScreen('home'); }
 
   useEffect(() => { if (!done && !mistake) { const t = setTimeout(() => inputRef.current && inputRef.current.focus(), 100); return () => clearTimeout(t); } }, [step, done, mistake]);
@@ -2556,6 +2590,14 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
     }
   // eslint-disable-next-line
   }, [R.phase]);
+  // Autosave on every meaningful change so closing the tab never loses work
+  useEffect(() => {
+    if (R.phase !== 'ready' || phase === 'done') return;
+    if (phase === 'reading' && quizStep === 0 && (!quizResults || quizResults.length === 0)) return;
+    R.save({ phase, quizStep, quizResults });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, quizStep, quizResults]);
+
   function saveAndExit() { sfx.pop(); stopSpeaking(); R.save({ phase, quizStep, quizResults }); setScreen('home'); }
 
   useEffect(() => { loadStory(); return () => { stopSpeaking(); if (timerRef.current) clearInterval(timerRef.current); }; }, []);
@@ -2986,6 +3028,15 @@ function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen })
     }
   // eslint-disable-next-line
   }, [R.phase]);
+
+  // Autosave on every advance so closing the tab never loses work
+  useEffect(() => {
+    if (R.phase !== 'ready' || done) return;
+    if (step === 0 && results.length === 0) return;
+    R.save({ step, results });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, results]);
+
   function saveAndExit() { sfx.pop(); R.save({ step, results }); setScreen('home'); }
 
   function choose(idx) {
@@ -3185,6 +3236,14 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
     }
   // eslint-disable-next-line
   }, [R.phase]);
+  // Autosave on every meaningful change so closing the tab never loses work
+  useEffect(() => {
+    if (R.phase !== 'ready' || phase === 'done') return;
+    if (phase === 'slides' && slideIdx === 0 && quizStep === 0 && (!quizResults || quizResults.length === 0)) return;
+    R.save({ phase, slideIdx, quizStep, quizResults });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, slideIdx, quizStep, quizResults]);
+
   function saveAndExit() { sfx.pop(); stopSpeaking(); R.save({ phase, slideIdx, quizStep, quizResults }); setScreen('home'); }
 
   useEffect(() => {
