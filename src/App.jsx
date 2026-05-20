@@ -808,19 +808,14 @@ export default function App() {
     const p = progress[name]?.[`day${d}`];
     return p && p.spelling !== undefined && p.vocab !== undefined && p.writing !== undefined && p.math !== undefined && p.reading !== undefined && p.puzzles !== undefined;
   };
-  // Day progression rules:
-  // - Ava and Layla progress together — Day N+1 unlocks only when BOTH finish Day N
-  //   (they compete side-by-side, so staying in sync matters for them)
-  // - Solo users (Salahuddin, Shyal) progress independently — their Day N+1 unlocks when THEY finish Day N
-  //   (so if one loses interest, they never hold back the sisters, and the sisters never hold them back)
+  // Day progression: every kid advances independently.
+  // (Ava and Layla used to be gated together, but the sisters preferred to
+  // progress at their own pace. The sister-comparison UI on Home and Day-
+  // complete screens still shows each other's points for friendly contrast.)
   const currentDay = useMemo(() => {
     if (!user) return 1;
     let d = 1;
-    if (!SISTER_NAMES.includes(user)) {
-      while (d < TOTAL_DAYS && isDayComplete(user, d)) d++;
-    } else {
-      while (d < TOTAL_DAYS && isDayComplete('Ava', d) && isDayComplete('Layla', d)) d++;
-    }
+    while (d < TOTAL_DAYS && isDayComplete(user, d)) d++;
     return d;
   // eslint-disable-next-line
   }, [progress, user]);
