@@ -4,8 +4,8 @@ import {
   createListener,
   isSttSupported,
   isTtsSupported,
-  speak,
-  cancelSpeech,
+  speakAsMascot,
+  stopMascotAudio,
   MASCOT_PERSONAS
 } from './voice.js';
 
@@ -35,9 +35,9 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
   useEffect(() => {
     const greeting = `Hi ${user}! It's ${persona.mascotName}. Tap the microphone and tell me what you want help with — or just ask me anything about your writing!`;
     setMessages([{ role: 'assistant', content: greeting }]);
-    if (!muted) speak(greeting, persona.voiceHint, () => setSpeaking(false));
+    if (!muted) speakAsMascot(greeting, user, () => setSpeaking(false));
     setSpeaking(!muted);
-    return () => cancelSpeech();
+    return () => stopMascotAudio();
     // eslint-disable-next-line
   }, []);
 
@@ -76,7 +76,7 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
       setMessages(m => [...m, { role: 'assistant', content: reply }]);
       if (!muted) {
         setSpeaking(true);
-        speak(reply, persona.voiceHint, () => setSpeaking(false));
+        speakAsMascot(reply, user, () => setSpeaking(false));
       }
     } catch (e) {
       console.error('mascot-chat failed:', e);
@@ -92,7 +92,7 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
       return;
     }
     setError(null);
-    cancelSpeech();
+    stopMascotAudio();
     setSpeaking(false);
     const rec = createListener({
       lang: 'en-GB',
@@ -122,13 +122,13 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
   }
 
   function toggleMute() {
-    if (!muted) cancelSpeech();
+    if (!muted) stopMascotAudio();
     setSpeaking(false);
     setMuted(m => !m);
   }
 
   function handleClose() {
-    cancelSpeech();
+    stopMascotAudio();
     stopListening();
     onClose && onClose();
   }

@@ -2,6 +2,12 @@
 // The API key lives only on the server — never sent to the browser.
 
 const MODEL = 'claude-sonnet-4-5';
+const MODEL_CHEAP = 'claude-haiku-4-5-20251001';
+// Switch mascot chat to the cheaper model once a single sitting goes past
+// this many user turns. The opening exchange (setting context, brainstorming)
+// is where Sonnet quality matters; after that the kid is mostly being cheered
+// on, which Haiku handles fine.
+const MASCOT_CHAT_CHEAP_AFTER_USER_TURNS = 10;
 
 async function callClaude(apiKey, prompt, maxTokens = 600) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -25,9 +31,9 @@ async function callClaude(apiKey, prompt, maxTokens = 600) {
   return (data.content || []).map(c => c.text || '').join('');
 }
 
-async function callClaudeMessages(apiKey, { system, messages, maxTokens = 800 }) {
+async function callClaudeMessages(apiKey, { system, messages, maxTokens = 800, model = MODEL }) {
   const body = {
-    model: MODEL,
+    model,
     max_tokens: maxTokens,
     messages
   };
@@ -408,10 +414,16 @@ ${(currentDraft || '').slice(0, 1200)}
 
 Important: replies are spoken aloud. Keep each reply to 1-3 short sentences. No markdown.`;
 
+      // Count user turns across the whole conversation (not just the trimmed window)
+      // and downgrade to the cheap model once chatter goes long.
+      const userTurns = messages.filter(m => m.role !== 'assistant').length;
+      const chatModel = userTurns > MASCOT_CHAT_CHEAP_AFTER_USER_TURNS ? MODEL_CHEAP : MODEL;
+
       const reply = await callClaudeMessages(apiKey, {
         system: sys,
         messages: trimmed,
-        maxTokens: 300
+        maxTokens: 300,
+        model: chatModel
       });
       const cleaned = (reply || '').replace(/[*_`#]+/g, '').trim();
       return res.status(200).json({ reply: cleaned || `Tell me more, ${childName}!` });
