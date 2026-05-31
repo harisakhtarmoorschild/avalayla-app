@@ -139,7 +139,7 @@ Never use markdown, asterisks, headings, or bullet points — only plain spoken 
 
 
 // ============================================================
-// speakAsMascot — try the neural ElevenLabs voice first (via the
+// speakAsMascot — try the neural Cartesia voice first (via the
 // server proxy), fall back to the robotic browser voice if the
 // server isn't configured or the request fails.
 // Returns a cancel() function for the caller to stop playback.
@@ -176,13 +176,13 @@ export async function speakAsMascot(text, mascotKey, onEnd) {
     audio.onended = () => { cleanup(); onEnd && onEnd(); };
     audio.onerror = () => {
       cleanup();
-      // Network/play error — fall back to browser TTS.
+      // Cartesia not configured or network failure — fall back to browser TTS.
       speak(text, persona.voiceHint, onEnd);
     };
     await audio.play();
     return () => { try { audio.pause(); } catch (e) {} cleanup(); };
   } catch (e) {
-    // ElevenLabs not configured or network failure — fall back.
+    // Cartesia not configured or network failure — fall back.
     return speak(text, persona.voiceHint, onEnd);
   }
 }
