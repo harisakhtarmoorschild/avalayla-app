@@ -19,7 +19,7 @@ import { getVerbalQuestionsForDay, getNonVerbalQuestionsForDay } from './content
 import { sfx, primeAudio } from './sounds.js';
 import LessonAnimation from './animations.jsx';
 
-const NAMES = ['Ava', 'Layla', 'Salahuddin', 'Shyal', 'Albie'];
+const NAMES = ['Ava', 'Layla', 'Shyal'];
 const SISTER_NAMES = ['Ava', 'Layla'];
 
 /* ============================================================
@@ -68,27 +68,6 @@ const THEME = {
     decorBg: ['🏆','⚽','🥅','⭐'],
     tokens: { '--theme-border': '#86efac', '--theme-border-strong': '#16a34a', '--theme-input-bg': '#f0fdf4' }
   },
-  Salahuddin: {
-    name: 'Salahuddin',
-    emoji: '🦖',
-    mascotEmoji: '🦖',
-    worldName: 'Dino Discovery',
-    tagline: 'ROAR into action, explorer!',
-    bgClass: 'salah-bg',
-    cardClass: 'salah-card',
-    gradient: 'salah-gradient',
-    gradientSoft: 'salah-gradient-soft',
-    text: 'salah-text',
-    accent: 'salah-accent',
-    pill: 'salah-pill',
-    pattern: 'salah-pattern',
-    font: 'font-display',
-    decor: ['🦖', '🦕', '🌋', '🦴', '🌿', '🥚'],
-    correctLine: ['ROAR-some!', 'T-rex-cellent!', 'Dino-mite!', 'Prehistoric power!', 'Fossil find!'],
-    wrongLine: ['Keep hunting!', 'Try again, explorer!', 'Nearly unearthed!', 'Dig deeper!'],
-    decorBg: ['🦖','🦕','🌋','🦴'],
-    tokens: { '--theme-border': '#fdba74', '--theme-border-strong': '#ea580c', '--theme-input-bg': '#fff7ed' }
-  },
   Shyal: {
     name: 'Shyal',
     emoji: '⚔️',
@@ -109,27 +88,6 @@ const THEME = {
     wrongLine: ['Re-launch!', 'Steady the bey!', 'Spin again!', 'Reset the stadium!'],
     decorBg: ['⚔️','🐉','🌀','⚡'],
     tokens: { '--theme-border': '#fca5a5', '--theme-border-strong': '#dc2626', '--theme-input-bg': '#fef2f2' }
-  },
-  Albie: {
-    name: 'Albie',
-    emoji: '🦁',
-    mascotEmoji: '🦁',
-    worldName: 'Pride Rock Kingdom',
-    tagline: 'Roar like a king, cub!',
-    bgClass: 'albie-bg',
-    cardClass: 'albie-card',
-    gradient: 'albie-gradient',
-    gradientSoft: 'albie-gradient-soft',
-    text: 'albie-text',
-    accent: 'albie-accent',
-    pill: 'albie-pill',
-    pattern: 'albie-pattern',
-    font: 'font-display',
-    decor: ['🦁', '🌞', '🌿', '✨', '🐾', '🌟'],
-    correctLine: ['Roar-some!', 'Pride Lands champion!', 'Hakuna Matata!', 'Mufasa would be proud!', 'Future king!'],
-    wrongLine: ['Even kings practice!', 'Stay strong, cub!', 'Look up at the stars!', 'Try again, little lion!'],
-    decorBg: ['🦁','🌞','✨','🌿'],
-    tokens: { '--theme-border': '#fcd34d', '--theme-border-strong': '#d97706', '--theme-input-bg': '#fffbeb' }
   }
 };
 
@@ -531,56 +489,6 @@ function LaylaMascot({ mood = 'idle', size = 120 }) {
   );
 }
 
-function SalahuddinMascot({ mood = 'idle', size = 120 }) {
-  const bounce = mood === 'happy' ? 'bounce-in' : '';
-  const sway = mood === 'idle' ? 'floaty' : '';
-  return (
-    <svg viewBox="0 0 140 130" width={size} height={size * 130 / 140} className={bounce}>
-      {/* Ground */}
-      <line x1="15" y1="118" x2="125" y2="118" stroke="#a16207" strokeWidth="2" strokeDasharray="5 3" opacity="0.5" />
-      <g className={sway} style={{transformOrigin:'70px 90px'}}>
-        {/* Tail */}
-        <path d="M 35 95 Q 18 80 20 65 Q 28 70 38 85 Z" fill="#16a34a" stroke="#166534" strokeWidth="2" />
-        {/* Body */}
-        <ellipse cx="65" cy="88" rx="30" ry="22" fill="#22c55e" stroke="#166534" strokeWidth="2" />
-        {/* Back spikes */}
-        <polygon points="50,70 55,60 60,70" fill="#ea580c" stroke="#9a3412" strokeWidth="1.5" />
-        <polygon points="65,66 70,55 75,66" fill="#ea580c" stroke="#9a3412" strokeWidth="1.5" />
-        <polygon points="80,70 85,60 90,70" fill="#ea580c" stroke="#9a3412" strokeWidth="1.5" />
-        {/* Legs */}
-        <rect x="50" y="104" width="8" height="14" rx="2" fill="#16a34a" stroke="#166534" strokeWidth="1.5" />
-        <rect x="72" y="104" width="8" height="14" rx="2" fill="#16a34a" stroke="#166534" strokeWidth="1.5" />
-        {/* Head */}
-        <ellipse cx="95" cy="65" rx="22" ry="18" fill="#22c55e" stroke="#166534" strokeWidth="2" />
-        {/* Mouth + teeth */}
-        {mood === 'happy' ? (
-          <>
-            <path d="M 80 68 Q 95 80 108 68" stroke="#166534" strokeWidth="2" fill="#fef3c7" strokeLinecap="round" />
-            <polygon points="86,70 88,76 90,70" fill="white" />
-            <polygon points="95,72 97,78 99,72" fill="white" />
-            <polygon points="102,70 104,76 106,70" fill="white" />
-          </>
-        ) : mood === 'sad' ? (
-          <path d="M 82 74 Q 95 68 106 74" stroke="#166534" strokeWidth="2" fill="none" strokeLinecap="round" />
-        ) : (
-          <>
-            <path d="M 82 70 Q 95 75 108 70" stroke="#166534" strokeWidth="2" fill="#fef3c7" strokeLinecap="round" />
-            <polygon points="88,72 90,76 92,72" fill="white" />
-            <polygon points="100,72 102,76 104,72" fill="white" />
-          </>
-        )}
-        {/* Eye */}
-        <circle cx="98" cy="58" r="4" fill="white" />
-        <circle cx="99" cy="58" r="2" fill="#1f2937" />
-        {/* Nostril */}
-        <circle cx="114" cy="62" r="1.5" fill="#166534" />
-      </g>
-      {/* Volcano on horizon */}
-      <text x="18" y="28" fontSize="18">🌋</text>
-    </svg>
-  );
-}
-
 function ShyalMascot({ mood = 'idle', size = 120 }) {
   const bounce = mood === 'happy' ? 'bounce-in' : '';
   const sway = mood === 'idle' ? 'floaty' : '';
@@ -643,97 +551,10 @@ function ShyalMascot({ mood = 'idle', size = 120 }) {
   );
 }
 
-function AlbieMascot({ mood = 'idle', size = 120 }) {
-  const bounce = mood === 'happy' ? 'bounce-in' : '';
-  const sway = mood === 'idle' ? 'floaty' : '';
-  return (
-    <svg viewBox="0 0 140 130" width={size} height={size * 130 / 140} className={bounce}>
-      {/* Savanna ground */}
-      <ellipse cx="70" cy="120" rx="55" ry="6" fill="#92400e" opacity="0.3" />
-      {/* Sun glow behind lion */}
-      <circle cx="70" cy="62" r="48" fill="#fde68a" opacity="0.55" />
-      <g className={sway} style={{transformOrigin:'70px 70px'}}>
-        {/* Mane — outer spikes */}
-        <g>
-          {Array.from({length: 18}).map((_, i) => {
-            const a = (i * 360 / 18) * Math.PI / 180;
-            const cx = 70 + Math.cos(a) * 38;
-            const cy = 70 + Math.sin(a) * 38;
-            const tx = 70 + Math.cos(a) * 50;
-            const ty = 70 + Math.sin(a) * 50;
-            const ax = 70 + Math.cos(a - 0.18) * 38;
-            const ay = 70 + Math.sin(a - 0.18) * 38;
-            const bx = 70 + Math.cos(a + 0.18) * 38;
-            const by = 70 + Math.sin(a + 0.18) * 38;
-            return <polygon key={i} points={`${ax},${ay} ${bx},${by} ${tx},${ty}`} fill="#b45309" stroke="#92400e" strokeWidth="0.5" />;
-          })}
-        </g>
-        {/* Mane base disc */}
-        <circle cx="70" cy="70" r="38" fill="#d97706" />
-        {/* Inner mane lighter */}
-        <circle cx="70" cy="70" r="32" fill="#f59e0b" />
-        {/* Face */}
-        <ellipse cx="70" cy="70" rx="26" ry="22" fill="#fcd34d" stroke="#92400e" strokeWidth="1.5" />
-        {/* Cheek tufts */}
-        <ellipse cx="55" cy="78" rx="10" ry="6" fill="#fef3c7" opacity="0.85" />
-        <ellipse cx="85" cy="78" rx="10" ry="6" fill="#fef3c7" opacity="0.85" />
-        {/* Ears */}
-        <ellipse cx="50" cy="48" rx="9" ry="8" fill="#d97706" stroke="#92400e" strokeWidth="1" />
-        <ellipse cx="90" cy="48" rx="9" ry="8" fill="#d97706" stroke="#92400e" strokeWidth="1" />
-        <ellipse cx="50" cy="48" rx="5" ry="4" fill="#92400e" />
-        <ellipse cx="90" cy="48" rx="5" ry="4" fill="#92400e" />
-        {/* Brow ridges (regal Mufasa look) */}
-        <path d="M 56 60 Q 62 56 68 59" stroke="#78350f" strokeWidth="1.5" fill="none" />
-        <path d="M 72 59 Q 78 56 84 60" stroke="#78350f" strokeWidth="1.5" fill="none" />
-        {/* Eyes + mood */}
-        {mood === 'happy' ? (
-          <>
-            <ellipse cx="62" cy="66" rx="3.5" ry="2.5" fill="#fffbeb" />
-            <ellipse cx="78" cy="66" rx="3.5" ry="2.5" fill="#fffbeb" />
-            <circle cx="62" cy="66" r="1.5" fill="#1c1917" />
-            <circle cx="78" cy="66" r="1.5" fill="#1c1917" />
-            <path d="M 60 80 Q 70 86 80 80" stroke="#78350f" strokeWidth="2" fill="none" strokeLinecap="round" />
-          </>
-        ) : mood === 'sad' ? (
-          <>
-            <ellipse cx="62" cy="68" rx="3" ry="2" fill="#fffbeb" />
-            <ellipse cx="78" cy="68" rx="3" ry="2" fill="#fffbeb" />
-            <circle cx="62" cy="68" r="1.2" fill="#1c1917" />
-            <circle cx="78" cy="68" r="1.2" fill="#1c1917" />
-            <path d="M 62 84 Q 70 80 78 84" stroke="#78350f" strokeWidth="2" fill="none" strokeLinecap="round" />
-          </>
-        ) : (
-          <>
-            <ellipse cx="62" cy="66" rx="3.5" ry="2.5" fill="#fffbeb" />
-            <ellipse cx="78" cy="66" rx="3.5" ry="2.5" fill="#fffbeb" />
-            <circle cx="62" cy="66" r="1.5" fill="#1c1917" />
-            <circle cx="78" cy="66" r="1.5" fill="#1c1917" />
-            <line x1="64" y1="82" x2="76" y2="82" stroke="#78350f" strokeWidth="2" strokeLinecap="round" />
-          </>
-        )}
-        {/* Snout */}
-        <ellipse cx="70" cy="80" rx="9" ry="5" fill="#fef3c7" stroke="#92400e" strokeWidth="1" />
-        {/* Nose */}
-        <polygon points="67,77 73,77 70,81" fill="#1c1917" />
-        {/* Whisker dots */}
-        <circle cx="63" cy="80" r="0.8" fill="#92400e" />
-        <circle cx="63" cy="82" r="0.8" fill="#92400e" />
-        <circle cx="77" cy="80" r="0.8" fill="#92400e" />
-        <circle cx="77" cy="82" r="0.8" fill="#92400e" />
-      </g>
-      {/* Stars (Mufasa in the sky) */}
-      <text x="14" y="22" fontSize="14">✨</text>
-      <text x="112" y="22" fontSize="14">⭐</text>
-    </svg>
-  );
-}
-
 function Mascot({ who, mood, size }) {
   if (who === 'Ava') return <AvaMascot mood={mood} size={size} />;
   if (who === 'Layla') return <LaylaMascot mood={mood} size={size} />;
-  if (who === 'Salahuddin') return <SalahuddinMascot mood={mood} size={size} />;
   if (who === 'Shyal') return <ShyalMascot mood={mood} size={size} />;
-  if (who === 'Albie') return <AlbieMascot mood={mood} size={size} />;
   return <AvaMascot mood={mood} size={size} />;
 }
 
@@ -906,22 +727,18 @@ function ProfileSelection({ onSelect, progress }) {
   return (
     <div className="font-body min-h-screen w-full ava-bg flex flex-col items-center justify-center p-6">
       <div className="text-center mb-10 pop-in">
-        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ 🦖 ⚔️ 🦁</div>
+        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ ⚔️</div>
         <h1 className="font-display text-3xl md:text-5xl font-bold leading-tight cursor-pointer select-none" onClick={handleTitleTap}>
           <span className="ava-text">Ava</span>
           <span className="text-gray-400">, </span>
           <span className="layla-text">Layla</span>
-          <span className="text-gray-400">, </span>
-          <span className="salah-text">Salahuddin</span>
-          <span className="text-gray-400">, </span>
-          <span className="shyal-text">Shyal</span>
           <span className="text-gray-400"> &amp; </span>
-          <span className="albie-text">Albie</span>
+          <span className="shyal-text">Shyal</span>
         </h1>
         <h2 className="font-display text-3xl md:text-5xl font-semibold text-purple-700 mt-1">Learn Together!</h2>
         <p className="mt-4 text-lg text-gray-600 font-medium">Who's playing today?</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 w-full max-w-7xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-5xl">
         {NAMES.map((n) => {
           const t = THEME[n];
           const totalPts = totalPoints(progress[n]);
@@ -1345,7 +1162,7 @@ function calcStreak(userProgress, currentDay) {
    ============================================================ */
 function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete }) {
   const me = THEME[user];
-  // Only Ava/Layla have a "sister" relationship. Salahuddin is solo on home view.
+  // Only Ava/Layla have a "sister" relationship. Shyal is solo on home view.
   const sister = user === 'Ava' ? 'Layla' : user === 'Layla' ? 'Ava' : null;
   const them = sister ? THEME[sister] : null;
   const dayKey = `day${currentDay}`;
@@ -1588,7 +1405,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
         {sister && myAllDone && !sisAllDone && (<div className="font-display text-xl text-gray-700">Amazing work, {user}! 🎉 Waiting for <span className={them.text}>{sister}</span> to finish Day {currentDay}…</div>)}
         {sister && myAllDone && sisAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">You both finished Day {currentDay}! Day {currentDay + 1} is unlocking… 🎊</div>)}
         {sister && currentDay >= TOTAL_DAYS && myAllDone && sisAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're superstars! 🏆</div>)}
-        {/* Salahuddin goes solo */}
+        {/* Solo kids (e.g. Shyal) */}
         {!sister && myAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">Day {currentDay} complete! 🎉 Day {currentDay + 1} is unlocking…</div>)}
         {!sister && currentDay >= TOTAL_DAYS && myAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're a superstar! 🏆</div>)}
       </div>
@@ -3574,7 +3391,7 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
 
   let headline, sub;
   if (!sister) {
-    // Solo celebration (Salahuddin, Shyal, etc.) — uses the user's own theme phrasing
+    // Solo celebration (Shyal, etc.) — uses the user's own theme phrasing
     const cheer = me.correctLine[0] || 'Amazing!';
     headline = `Brilliant, ${user}! You finished Day ${currentDay}! ${me.mascotEmoji}`;
     sub = `You scored ${my} out of ${dayMax}. ${cheer} Onwards to the next adventure!`;
@@ -3614,7 +3431,7 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
         </div>
       </div>
 
-      {/* Score comparison — only for Ava/Layla (Salahuddin has no sister to compare with) */}
+      {/* Score comparison — only for Ava/Layla (solo kids have no sister to compare with) */}
       {sister ? (
         <div className="grid sm:grid-cols-2 gap-4 mt-6">
           <div className={`rounded-3xl p-5 kid-shadow ${me.gradientSoft}`}>
