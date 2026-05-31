@@ -304,7 +304,69 @@ if (typeof window !== 'undefined' && window.speechSynthesis) {
   }, 0);
 }
 
+// ============================================================
+// Active mascot for spoken narration. When set, speak() / speakWord()
+// route through the Cartesia /api/tts proxy and use the kid's mascot
+// voice. When null (or Cartesia call fails), they fall back to the
+// browser's robotic speechSynthesis.
+//
+// chooseUser() sets this; switchUser() clears it.
+// ============================================================
+let activeMascotKey = null;
+function setActiveMascotForSpeech(kid) { activeMascotKey = kid || null; }
+
+// Track the currently-playing Cartesia audio so stop/pause/resume can find it.
+let currentMascotAudio = null;
+
+async function speakViaCartesia(text, opts = {}) {
+  if (!activeMascotKey) return false;
+  try {
+    const r = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, mascot: activeMascotKey })
+    });
+    if (!r.ok) return false;
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    // Stop anything currently playing before starting the new clip.
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    if (currentMascotAudio) { try { currentMascotAudio.pause(); } catch (e) {} }
+    const audio = new Audio(url);
+    audio.playbackRate = opts.rate ? Math.max(0.5, Math.min(2, opts.rate / 0.92)) : 1.0;
+    currentMascotAudio = audio;
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      if (currentMascotAudio === audio) currentMascotAudio = null;
+      opts.onend && opts.onend();
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      if (currentMascotAudio === audio) currentMascotAudio = null;
+      opts.onerror && opts.onerror();
+    };
+    opts.onstart && opts.onstart();
+    await audio.play();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function speak(text, opts = {}) {
+  // Try Cartesia first; if it succeeds, no further work is needed.
+  // We can't await here because most callers are synchronous, so we
+  // kick it off and silently fall through to browser TTS on failure.
+  if (activeMascotKey) {
+    speakViaCartesia(text, opts).then(ok => {
+      if (!ok) speakBrowser(text, opts);
+    });
+    return null;
+  }
+  return speakBrowser(text, opts);
+}
+
+function speakBrowser(text, opts = {}) {
   try {
     if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(text);
@@ -328,6 +390,47 @@ function speak(text, opts = {}) {
 // Two passes: the word → small pause → the word again, so kids have time to hear it.
 function speakWord(word) {
   if (!word) return;
+  // Cartesia path: synthesize once, play twice with a pause. (Two requests would
+  // double the character cost; this caches the same blob and replays it.)
+  if (activeMascotKey) {
+    (async () => {
+      try {
+        const r = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: word, mascot: activeMascotKey })
+        });
+        if (!r.ok) throw new Error('tts ' + r.status);
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+        if (currentMascotAudio) { try { currentMascotAudio.pause(); } catch (e) {} }
+        const playOnce = () => {
+          const audio = new Audio(url);
+          audio.playbackRate = 0.92; // slightly slower for spelling clarity
+          currentMascotAudio = audio;
+          audio.play().catch(() => {});
+          return audio;
+        };
+        const a1 = playOnce();
+        a1.onended = () => {
+          setTimeout(() => {
+            const a2 = playOnce();
+            a2.onended = () => { URL.revokeObjectURL(url); if (currentMascotAudio === a2) currentMascotAudio = null; };
+            a2.onerror = () => { URL.revokeObjectURL(url); };
+          }, 700);
+        };
+        a1.onerror = () => { URL.revokeObjectURL(url); speakWordBrowser(word); };
+      } catch (e) {
+        speakWordBrowser(word);
+      }
+    })();
+    return;
+  }
+  speakWordBrowser(word);
+}
+
+function speakWordBrowser(word) {
   try {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -348,7 +451,14 @@ function speakWord(word) {
     mkUtterance(word, 1400);
   } catch (e) {}
 }
-function stopSpeaking() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+
+function stopSpeaking() {
+  try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+  if (currentMascotAudio) {
+    try { currentMascotAudio.pause(); } catch (e) {}
+    currentMascotAudio = null;
+  }
+}
 
 /* --------- API helpers --------- */
 async function aiCall(task, payload) {
@@ -614,9 +724,12 @@ export default function App() {
   function chooseUser(name) {
     primeAudio(); sfx.pop();
     setUser(name); setLocalUser(name);
+    // Route all subsequent narration through this kid's mascot voice (Cartesia).
+    setActiveMascotForSpeech(name);
   }
   function switchUser() {
     setUser(null); setScreen('home'); setLocalUser(null); stopSpeaking();
+    setActiveMascotForSpeech(null);
   }
 
   async function saveActivity(day, activity, score, meta = {}) {
@@ -2608,11 +2721,18 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   }
   function pauseReading() {
     try { window.speechSynthesis.pause(); } catch (e) {}
+    if (currentMascotAudio) { try { currentMascotAudio.pause(); } catch (e) {} }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     setPlaying(false);
   }
   function resumeReading() {
-    try { window.speechSynthesis.resume(); setPlaying(true); } catch (e) { startReading(); }
+    let resumed = false;
+    if (currentMascotAudio) {
+      try { currentMascotAudio.play(); setPlaying(true); resumed = true; } catch (e) {}
+    }
+    if (!resumed) {
+      try { window.speechSynthesis.resume(); setPlaying(true); } catch (e) { startReading(); }
+    }
   }
   function restart() { stopSpeaking(); if (timerRef.current) clearInterval(timerRef.current); setCurrentWordIdx(-1); setPlaying(false); }
 
