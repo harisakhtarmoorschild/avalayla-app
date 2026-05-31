@@ -25,6 +25,30 @@ async function callClaude(apiKey, prompt, maxTokens = 600) {
   return (data.content || []).map(c => c.text || '').join('');
 }
 
+async function callClaudeMessages(apiKey, { system, messages, maxTokens = 800 }) {
+  const body = {
+    model: MODEL,
+    max_tokens: maxTokens,
+    messages
+  };
+  if (system) body.system = system;
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`Claude ${r.status}: ${t}`);
+  }
+  const data = await r.json();
+  return (data.content || []).map(c => c.text || '').join('');
+}
+
 function extractJSON(text) {
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) return null;
@@ -356,6 +380,113 @@ Respond with ONLY valid JSON (no markdown, no commentary):
         return res.status(200).json(parsed);
       }
       return res.status(502).json({ error: 'Lesson generation failed', raw: text.slice(0,200) });
+    }
+
+    /* =========================================================
+       MASCOT CHAT — two-way voice/text chat with the kid's mascot
+       during the writing exercise. Persona is supplied per-kid.
+       ========================================================= */
+    if (task === 'mascot-chat') {
+      const { childName = 'you', mascotName = 'Friend', systemPrompt, writingPrompt = '', currentDraft = '', messages = [] } = payload || {};
+      if (!systemPrompt) return res.status(400).json({ error: 'Missing systemPrompt' });
+      if (!Array.isArray(messages) || messages.length === 0) return res.status(400).json({ error: 'Missing messages' });
+
+      // Clamp message history to last 10 turns and strip to {role, content} strings.
+      const trimmed = messages.slice(-10).map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: String(m.content || '').slice(0, 600)
+      }));
+
+      const sys = `${systemPrompt}
+
+You are talking with ${childName}.
+Today's writing prompt: "${writingPrompt}"
+Their writing so far (may be empty if they haven't started):
+"""
+${(currentDraft || '').slice(0, 1200)}
+"""
+
+Important: replies are spoken aloud. Keep each reply to 1-3 short sentences. No markdown.`;
+
+      const reply = await callClaudeMessages(apiKey, {
+        system: sys,
+        messages: trimmed,
+        maxTokens: 300
+      });
+      const cleaned = (reply || '').replace(/[*_`#]+/g, '').trim();
+      return res.status(200).json({ reply: cleaned || `Tell me more, ${childName}!` });
+    }
+
+    /* =========================================================
+       WRITING FEEDBACK (VISION) — same grading shape as the text
+       version but the child's answer is a handwritten PNG image.
+       ========================================================= */
+    if (task === 'writing-feedback-vision') {
+      const { prompt: writingPrompt, imageBase64, childName = 'you' } = payload || {};
+      if (!writingPrompt || !imageBase64) return res.status(400).json({ error: 'Missing prompt/imageBase64' });
+
+      const userContent = [
+        {
+          type: 'image',
+          source: { type: 'base64', media_type: 'image/png', data: imageBase64 }
+        },
+        {
+          type: 'text',
+          text: `You are a warm primary-school teacher marking 7-year-old ${childName}'s HANDWRITTEN creative writing. The image above is what they wrote with an Apple Pencil.
+
+The prompt was: "${writingPrompt}"
+They were asked to write at least 10 sentences.
+
+First, carefully read their handwriting from the image. Be charitable — children's handwriting is messy.
+
+Respond with ONLY valid JSON in this exact shape (no markdown, no commentary):
+{
+  "grade": <number 1-10>,
+  "transcription": "<your best reading of what they wrote, exactly as written — keep their spelling mistakes>",
+  "praise": "<2-3 warm specific sentences about what they did well, referencing actual phrases you read>",
+  "strengths": ["<specific strength with example quote>", "<another>", "<another>", "<a fourth>"],
+  "perSentence": [
+    {"s": "<quoted sentence>", "note": "<specific observation>"},
+    {"s": "<quoted sentence>", "note": "<specific observation>"},
+    {"s": "<quoted sentence>", "note": "<specific observation>"}
+  ],
+  "improvements": [
+    {"area": "<area>", "why": "<one sentence>", "example": "<concrete rewritten example using their content>"},
+    {"area": "<area>", "why": "<why>", "example": "<example>"},
+    {"area": "<area>", "why": "<why>", "example": "<example>"}
+  ],
+  "ideas": ["<concrete next-sentence suggestion>", "<another>", "<a third>"],
+  "cheer": "<one enthusiastic closing line>"
+}
+
+If the handwriting is completely unreadable or the page is blank, return {"grade": 1, "transcription": "", "praise": "I couldn't read your writing this time, so let's try again with bigger letters!", "strengths": [], "perSentence": [], "improvements": [{"area": "Bigger, clearer letters", "why": "So everyone can read your great ideas", "example": "Try writing each word twice as big with space between."}], "ideas": [], "cheer": "Have another go!"}
+
+Grading rubric (be generous but honest — kids should feel proud):
+- 10 = wonderful: vivid, 10+ sentences, mostly tidy writing, creative ideas
+- 8-9 = really good: solid length, mostly clear writing, clear ideas
+- 6-7 = good effort: tried hard, some good bits, room to grow
+- 4-5 = needs more work: short or hard to read but some effort
+- 1-3 = very short, blank, or unreadable
+
+Tone: like a beloved teacher. Specific. Warm. Never patronising.`
+        }
+      ];
+
+      const text = await callClaudeMessages(apiKey, {
+        messages: [{ role: 'user', content: userContent }],
+        maxTokens: 2000
+      });
+      const parsed = extractJSON(text);
+      if (parsed && typeof parsed.grade === 'number') {
+        parsed.grade = Math.max(1, Math.min(10, Math.round(parsed.grade)));
+        if (!Array.isArray(parsed.strengths)) parsed.strengths = [];
+        if (!Array.isArray(parsed.perSentence)) parsed.perSentence = [];
+        if (!Array.isArray(parsed.improvements)) parsed.improvements = [];
+        if (!Array.isArray(parsed.ideas)) parsed.ideas = [];
+        if (typeof parsed.transcription !== 'string') parsed.transcription = '';
+        return res.status(200).json(parsed);
+      }
+      return res.status(200).json({ grade: null });
     }
 
     return res.status(400).json({ error: 'Unknown task' });
