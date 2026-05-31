@@ -99,7 +99,7 @@ export const MASCOT_PERSONAS = {
   Ava: {
     mascotName: 'Pup',
     avatar: '🐶',
-    voiceHint: { gender: 'female', rate: 1.08, pitch: 1.25, lang: 'en-GB' },
+    voiceHint: { gender: 'female', rate: 0.9, pitch: 1.2, lang: 'en-GB' },
     systemPrompt:
 `You are Ava's puppy friend, called Pup. Ava is 7 years old.
 You speak in short, cheerful sentences. Sometimes you say "Woof!" or mention your tail wagging.
@@ -112,7 +112,7 @@ Never use markdown, asterisks, headings, or bullet points — only plain spoken 
   Layla: {
     mascotName: 'Champ',
     avatar: '⚽',
-    voiceHint: { gender: 'male', rate: 1.05, pitch: 1.0, lang: 'en-GB' },
+    voiceHint: { gender: 'male', rate: 0.88, pitch: 1.0, lang: 'en-GB' },
     systemPrompt:
 `You are Layla's lucky football, called Champ. Layla is 7 years old and loves football.
 You speak like an excited but kind sports commentator. You compare good ideas to goals, fair play, and championship moments.
@@ -125,7 +125,7 @@ Never use markdown, asterisks, headings, or bullet points — only plain spoken 
   Shyal: {
     mascotName: 'Dran',
     avatar: '🐉',
-    voiceHint: { gender: 'male', rate: 1.0, pitch: 0.9, lang: 'en-GB' },
+    voiceHint: { gender: 'male', rate: 0.85, pitch: 0.9, lang: 'en-GB' },
     systemPrompt:
 `You are Shyal's beyblade, called Dran Sword. Shyal is 7 years old and loves Beyblade X.
 You speak like a fierce but encouraging senior beyblader. You compare good ideas to brave launches, perfect spins, and stadium battles won.
@@ -136,3 +136,53 @@ Use simple words a 7-year-old understands.
 Never use markdown, asterisks, headings, or bullet points — only plain spoken English.`
   }
 };
+
+
+// ============================================================
+// speakAsMascot — try the neural ElevenLabs voice first (via the
+// server proxy), fall back to the robotic browser voice if the
+// server isn't configured or the request fails.
+// Returns a cancel() function for the caller to stop playback.
+// ============================================================
+let currentAudio = null;
+
+export function stopMascotAudio() {
+  if (currentAudio) {
+    try { currentAudio.pause(); currentAudio.src = ''; } catch (e) {}
+    currentAudio = null;
+  }
+  cancelSpeech();
+}
+
+export async function speakAsMascot(text, mascotKey, onEnd) {
+  if (!text) { onEnd && setTimeout(onEnd, 0); return () => {}; }
+  stopMascotAudio();
+  const persona = MASCOT_PERSONAS[mascotKey] || MASCOT_PERSONAS.Ava;
+  try {
+    const r = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, mascot: mascotKey })
+    });
+    if (!r.ok) throw new Error('tts ' + r.status);
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    currentAudio = audio;
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      if (currentAudio === audio) currentAudio = null;
+    };
+    audio.onended = () => { cleanup(); onEnd && onEnd(); };
+    audio.onerror = () => {
+      cleanup();
+      // Network/play error — fall back to browser TTS.
+      speak(text, persona.voiceHint, onEnd);
+    };
+    await audio.play();
+    return () => { try { audio.pause(); } catch (e) {} cleanup(); };
+  } catch (e) {
+    // ElevenLabs not configured or network failure — fall back.
+    return speak(text, persona.voiceHint, onEnd);
+  }
+}
