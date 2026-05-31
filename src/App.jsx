@@ -26,13 +26,13 @@ const NAMES = ['Ava', 'Layla', 'Shyal'];
 const SISTER_NAMES = ['Ava', 'Layla'];
 
 /* ============================================================
-   THEMES â€” three distinct worlds
+   THEMES — three distinct worlds
    ============================================================ */
 const THEME = {
   Ava: {
     name: 'Ava',
-    emoji: 'ðŸ¶',
-    mascotEmoji: 'ðŸ¶',
+    emoji: '🐶',
+    mascotEmoji: '🐶',
     worldName: 'Pawsome Academy',
     tagline: 'Time to sparkle, superstar!',
     bgClass: 'ava-bg',
@@ -44,16 +44,16 @@ const THEME = {
     pill: 'ava-pill',
     pattern: 'ava-pattern',
     font: 'font-script',
-    decor: ['ðŸŽ€', 'ðŸ’–', 'âœ¨', 'ðŸŒ¸', 'ðŸ¦´', 'ðŸ¾'],
+    decor: ['🎀', '💖', '✨', '🌸', '🦴', '🐾'],
     correctLine: ['Pawsome!', 'Star pupil!', 'Sparkle on!', 'Dazzling!', 'Woof-tastic!'],
     wrongLine: ['Good try!', 'Nearly there!', 'Keep going!', 'You can do it!'],
-    decorBg: ['ðŸŽ€','ðŸ’–','âœ¨','ðŸŒ¸'],
+    decorBg: ['🎀','💖','✨','🌸'],
     tokens: { '--theme-border': '#f9a8d4', '--theme-border-strong': '#ec4899', '--theme-input-bg': '#fff5f9' }
   },
   Layla: {
     name: 'Layla',
-    emoji: 'âš½',
-    mascotEmoji: 'âš½',
+    emoji: '⚽',
+    mascotEmoji: '⚽',
     worldName: 'Champions League',
     tagline: 'Kickoff, champion!',
     bgClass: 'layla-bg',
@@ -65,16 +65,16 @@ const THEME = {
     pill: 'layla-pill',
     pattern: 'layla-pattern',
     font: 'font-sport',
-    decor: ['ðŸ†', 'âš½', 'ðŸ¥…', 'ðŸŽ¯', 'â­', 'ðŸŸï¸'],
+    decor: ['🏆', '⚽', '🥅', '🎯', '⭐', '🏟️'],
     correctLine: ['GOAL!', 'Top bins!', 'Back of the net!', 'Championship form!', 'Full points!'],
     wrongLine: ['Close one!', 'Unlucky!', 'Next time!', 'Keep pushing!'],
-    decorBg: ['ðŸ†','âš½','ðŸ¥…','â­'],
+    decorBg: ['🏆','⚽','🥅','⭐'],
     tokens: { '--theme-border': '#86efac', '--theme-border-strong': '#16a34a', '--theme-input-bg': '#f0fdf4' }
   },
   Shyal: {
     name: 'Shyal',
-    emoji: 'âš”ï¸',
-    mascotEmoji: 'ðŸ‰',
+    emoji: '⚔️',
+    mascotEmoji: '🐉',
     worldName: 'Dran Sword Stadium',
     tagline: 'Let it RIP, champion!',
     bgClass: 'shyal-bg',
@@ -86,10 +86,10 @@ const THEME = {
     pill: 'shyal-pill',
     pattern: 'shyal-pattern',
     font: 'font-sport',
-    decor: ['âš”ï¸', 'ðŸ‰', 'ðŸŒ€', 'âš¡', 'ðŸ”¥', 'ðŸ’¥'],
+    decor: ['⚔️', '🐉', '🌀', '⚡', '🔥', '💥'],
     correctLine: ['Let it RIP!', 'X-treme finish!', 'Burst victory!', 'Stadium champion!', 'Dran Sword power!'],
     wrongLine: ['Re-launch!', 'Steady the bey!', 'Spin again!', 'Reset the stadium!'],
-    decorBg: ['âš”ï¸','ðŸ‰','ðŸŒ€','âš¡'],
+    decorBg: ['⚔️','🐉','🌀','⚡'],
     tokens: { '--theme-border': '#fca5a5', '--theme-border-strong': '#dc2626', '--theme-input-bg': '#fef2f2' }
   }
 };
@@ -138,7 +138,7 @@ function getSpellingWords(day, tierOffset = 0) {
   // Deterministically shuffle this tier using a seed unique to this tier
   const tierShuffled = shuffle([...tierWords], mulberry32(1000 + tier));
 
-  // Sliding window of 10 words per day â€” wraps around if tier has fewer than 150 words
+  // Sliding window of 10 words per day — wraps around if tier has fewer than 150 words
   const perDay = 10;
   const start = (dayInTier * perDay) % tierShuffled.length;
   const result = [];
@@ -182,26 +182,26 @@ function getMathProblems(day, tierOffset = 0) {
   const problems = [];
   const baseTier = Math.min(3, Math.floor((day - 1) / Math.ceil(TOTAL_DAYS / 4)));
   const tier = Math.max(0, Math.min(3, baseTier + tierOffset));
-  const types = ['Ã—', '+', 'âˆ’', 'Ã·'];
+  const types = ['×', '+', '−', '÷'];
   for (let i = 0; i < 10; i++) {
     const type = types[i % 4];
     let a, b, answer, question;
-    if (type === 'Ã—') {
+    if (type === '×') {
       a = 2 + Math.floor(rand() * 11); b = 2 + Math.floor(rand() * 11);
-      answer = a * b; question = `${a} Ã— ${b}`;
+      answer = a * b; question = `${a} × ${b}`;
     } else if (type === '+') {
       const max = 20 + tier * 40;
       a = 10 + Math.floor(rand() * max); b = 10 + Math.floor(rand() * max);
       answer = a + b; question = `${a} + ${b}`;
-    } else if (type === 'âˆ’') {
+    } else if (type === '−') {
       const max = 20 + tier * 40;
       a = 25 + Math.floor(rand() * max); b = 5 + Math.floor(rand() * (a - 5));
-      answer = a - b; question = `${a} âˆ’ ${b}`;
+      answer = a - b; question = `${a} − ${b}`;
     } else {
       const divisor = 2 + Math.floor(rand() * (6 + tier));
       const quotient = 2 + Math.floor(rand() * (9 + tier * 2));
       a = divisor * quotient; b = divisor;
-      answer = quotient; question = `${a} Ã· ${b}`;
+      answer = quotient; question = `${a} ÷ ${b}`;
     }
     problems.push({ question, answer });
   }
@@ -292,7 +292,7 @@ function pickBestVoice(opts = {}) {
   return best;
 }
 
-// Prime voices on load â€” browsers often load the voice list asynchronously
+// Prime voices on load — browsers often load the voice list asynchronously
 if (typeof window !== 'undefined' && window.speechSynthesis) {
   window.speechSynthesis.onvoiceschanged = () => {
     _cachedVoice = null; _cachedSpellingVoice = null; _cachedNarrationVoice = null;
@@ -370,7 +370,7 @@ function speakBrowser(text, opts = {}) {
   try {
     if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(text);
-    // More natural defaults â€” slightly slower, gentle pitch
+    // More natural defaults — slightly slower, gentle pitch
     u.rate = opts.rate ?? 0.92;
     u.pitch = opts.pitch ?? 1.02;
     u.volume = 1;
@@ -386,8 +386,8 @@ function speakBrowser(text, opts = {}) {
   } catch (e) {}
 }
 
-// Dedicated speaker for spelling test words â€” clearer, sharper, slightly slower.
-// Two passes: the word â†’ small pause â†’ the word again, so kids have time to hear it.
+// Dedicated speaker for spelling test words — clearer, sharper, slightly slower.
+// Two passes: the word → small pause → the word again, so kids have time to hear it.
 function speakWord(word) {
   if (!word) return;
   // Cartesia path: synthesize once, play twice with a pause. (Two requests would
@@ -438,8 +438,8 @@ function speakWordBrowser(word) {
       setTimeout(() => {
         if (!window.speechSynthesis) return;
         const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.78;     // slower â€” give each syllable room
-        u.pitch = 1.08;    // slightly higher â€” brighter, clearer for kids
+        u.rate = 0.78;     // slower — give each syllable room
+        u.pitch = 1.08;    // slightly higher — brighter, clearer for kids
         u.volume = 1;
         const v = pickBestVoice({ crispForSpelling: true });
         if (v) u.voice = v;
@@ -489,13 +489,13 @@ function heuristicWritingFeedback(text) {
   grade = Math.max(1, Math.min(10, grade));
   return {
     grade,
-    praise: words > 30 ? 'You wrote a lovely amount â€” well done for sharing your thoughts so clearly!' : 'Thank you for writing â€” you made a great start!',
+    praise: words > 30 ? 'You wrote a lovely amount — well done for sharing your thoughts so clearly!' : 'Thank you for writing — you made a great start!',
     strengths: ['You made an effort to share your ideas', 'Keep going with your writing every day', 'You\'re building a good writing habit'],
     suggestion: sentences.length < 10
       ? 'Try to write at least 10 full sentences, each starting with a capital letter and ending with a full stop.'
       : 'Try adding sparkly describing words (like enormous, glittering, peculiar) to bring your writing to life.',
     ideas: ['Describe a small detail like a smell or a sound', 'Use a simile: "as X as Y"'],
-    cheer: 'You are doing brilliantly â€” keep it up!'
+    cheer: 'You are doing brilliantly — keep it up!'
   };
 }
 
@@ -554,8 +554,8 @@ function AvaMascot({ mood = 'idle', size = 120 }) {
         <path d="M 66 66 L 70 70 L 74 66" stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round" />
       )}
       {/* Sparkles */}
-      <text x="20" y="25" fontSize="14" className="sparkle">âœ¨</text>
-      <text x="115" y="20" fontSize="12" className="sparkle" style={{animationDelay: '0.7s'}}>âœ¨</text>
+      <text x="20" y="25" fontSize="14" className="sparkle">✨</text>
+      <text x="115" y="20" fontSize="12" className="sparkle" style={{animationDelay: '0.7s'}}>✨</text>
     </svg>
   );
 }
@@ -597,7 +597,7 @@ function LaylaMascot({ mood = 'idle', size = 120 }) {
         )}
       </g>
       {/* Goal post shadow */}
-      <text x="105" y="28" fontSize="20">ðŸ¥…</text>
+      <text x="105" y="28" fontSize="20">🥅</text>
     </svg>
   );
 }
@@ -658,8 +658,8 @@ function ShyalMascot({ mood = 'idle', size = 120 }) {
         </g>
       </g>
       {/* Lightning sparks on horizon */}
-      <text x="14" y="30" fontSize="16">âš¡</text>
-      <text x="112" y="30" fontSize="16">ðŸ”¥</text>
+      <text x="14" y="30" fontSize="16">⚡</text>
+      <text x="112" y="30" fontSize="16">🔥</text>
     </svg>
   );
 }
@@ -768,8 +768,8 @@ export default function App() {
     return (
       <div className="font-body min-h-screen w-full flex items-center justify-center ava-bg">
         <div className="text-center">
-          <div className="text-7xl mb-6 floaty">âœ¨</div>
-          <div className="font-display text-3xl text-purple-700">Loading your adventureâ€¦</div>
+          <div className="text-7xl mb-6 floaty">✨</div>
+          <div className="font-display text-3xl text-purple-700">Loading your adventure…</div>
         </div>
       </div>
     );
@@ -843,7 +843,7 @@ function ProfileSelection({ onSelect, progress }) {
   return (
     <div className="font-body min-h-screen w-full ava-bg flex flex-col items-center justify-center p-6">
       <div className="text-center mb-10 pop-in">
-        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>ðŸ¶ âš½ âš”ï¸</div>
+        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ ⚔️</div>
         <h1 className="font-display text-3xl md:text-5xl font-bold leading-tight cursor-pointer select-none" onClick={handleTitleTap}>
           <span className="ava-text">Ava</span>
           <span className="text-gray-400">, </span>
@@ -875,7 +875,7 @@ function ProfileSelection({ onSelect, progress }) {
                 <div className={`${t.font} text-5xl font-bold drop-shadow`}>{n}</div>
                 <div className="text-white/90 mt-2 text-lg font-medium">{t.worldName}</div>
                 <div className="mt-4 text-white/90 text-base"><span className="font-bold text-xl">{totalPts}</span> points so far</div>
-                <div className="mt-2 text-white/90 font-semibold">Tap to start â†’</div>
+                <div className="mt-2 text-white/90 font-semibold">Tap to start →</div>
               </div>
             </button>
           );
@@ -900,7 +900,7 @@ function ProfileSelection({ onSelect, progress }) {
               onChange={e => { setPinInput(e.target.value.replace(/\D/g, '')); setPinError(false); }}
               onKeyDown={e => e.key === 'Enter' && submitPin()}
               className={`w-full p-4 rounded-xl border-4 text-center font-display text-3xl tracking-widest ${pinError ? 'border-rose-400 bg-rose-50' : 'border-indigo-200'}`}
-              placeholder="â€¢â€¢â€¢â€¢" />
+              placeholder="••••" />
             {pinError && <div className="text-rose-600 text-sm mt-2 text-center">Incorrect PIN</div>}
             <div className="text-xs text-gray-400 mt-2 text-center">Default PIN is 0000. You can change it in the dashboard.</div>
             <div className="flex gap-2 mt-4">
@@ -915,7 +915,7 @@ function ProfileSelection({ onSelect, progress }) {
 }
 
 /* ============================================================
-   PARENT DASHBOARD â€” hidden behind triple-tap + PIN on title
+   PARENT DASHBOARD — hidden behind triple-tap + PIN on title
    ============================================================ */
 function ParentDashboard({ progress, onBack }) {
   const [pinChanging, setPinChanging] = useState(false);
@@ -992,20 +992,20 @@ function ParentDashboard({ progress, onBack }) {
   NAMES.forEach(n => { stats[n] = getStatsFor(progress[n]); });
 
   const activityMeta = {
-    spelling:  { label: 'Spelling',   emoji: 'ðŸ”Š' },
-    vocab:     { label: 'Vocabulary', emoji: 'ðŸ“š' },
-    writing:   { label: 'Writing',    emoji: 'âœï¸' },
-    math:      { label: 'Maths',      emoji: 'ðŸ§®' },
-    reading:   { label: 'Reading',    emoji: 'ðŸ“–' },
-    puzzles:   { label: 'Puzzles',    emoji: 'ðŸ§ ' },
-    history:   { label: 'History',    emoji: 'ðŸ›ï¸' },
-    geography: { label: 'Geography',  emoji: 'ðŸŒ' },
-    science:   { label: 'Science',    emoji: 'ðŸ”¬' }
+    spelling:  { label: 'Spelling',   emoji: '🔊' },
+    vocab:     { label: 'Vocabulary', emoji: '📚' },
+    writing:   { label: 'Writing',    emoji: '✏️' },
+    math:      { label: 'Maths',      emoji: '🧮' },
+    reading:   { label: 'Reading',    emoji: '📖' },
+    puzzles:   { label: 'Puzzles',    emoji: '🧠' },
+    history:   { label: 'History',    emoji: '🏛️' },
+    geography: { label: 'Geography',  emoji: '🌍' },
+    science:   { label: 'Science',    emoji: '🔬' }
   };
   function tierLabel(offset) {
-    if (offset === 1) return 'â†‘ Stretching harder';
-    if (offset === -1) return 'â†“ Easing off';
-    return 'â€“ On level';
+    if (offset === 1) return '↑ Stretching harder';
+    if (offset === -1) return '↓ Easing off';
+    return '– On level';
   }
   function tierColor(offset) {
     if (offset === 1) return 'text-emerald-600';
@@ -1092,7 +1092,7 @@ function ParentDashboard({ progress, onBack }) {
                     <td className="py-2 pr-4 font-semibold text-gray-700">{activityMeta[a].emoji} {activityMeta[a].label}</td>
                     {NAMES.map(n => {
                       const b = stats[n].byActivity[a];
-                      if (!b || b.attempts === 0) return <td key={n} className="text-center py-2 px-2 text-gray-300">â€”</td>;
+                      if (!b || b.attempts === 0) return <td key={n} className="text-center py-2 px-2 text-gray-300">—</td>;
                       const pct = b.avgPct;
                       const cls = pct >= 80 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-rose-600';
                       return (
@@ -1106,7 +1106,7 @@ function ParentDashboard({ progress, onBack }) {
               </tbody>
             </table>
           </div>
-          <div className="text-xs text-gray-400 mt-2">Bracketed number = attempts. Green 80%+ Â· amber 50-79% Â· red under 50%.</div>
+          <div className="text-xs text-gray-400 mt-2">Bracketed number = attempts. Green 80%+ · amber 50-79% · red under 50%.</div>
         </div>
 
         {/* Adaptive difficulty status */}
@@ -1130,12 +1130,12 @@ function ParentDashboard({ progress, onBack }) {
           </div>
         </div>
 
-        {/* Data cleanup â€” removes legacy corrupted entries from Firestore */}
+        {/* Data cleanup — removes legacy corrupted entries from Firestore */}
         <div className="bg-white kid-shadow rounded-[1.5rem] p-5 md:p-6 mb-6">
           <div className="font-display text-xl font-bold text-gray-800 mb-1 flex items-center gap-2">
-            ðŸ§¹ Data cleanup
+            🧹 Data cleanup
           </div>
-          <div className="text-xs text-gray-500 mb-3">If a child's leaderboard or profile shows "[object Object]" or weird numbers, their progress record has legacy garbage from an earlier bug. Tap below to scrub it. <strong>Real scores are preserved</strong> â€” only invalid entries are removed.</div>
+          <div className="text-xs text-gray-500 mb-3">If a child's leaderboard or profile shows "[object Object]" or weird numbers, their progress record has legacy garbage from an earlier bug. Tap below to scrub it. <strong>Real scores are preserved</strong> — only invalid entries are removed.</div>
           <div className="grid md:grid-cols-3 gap-3">
             {NAMES.map(n => (
               <button key={n} disabled={cleaningFor === n}
@@ -1148,22 +1148,22 @@ function ParentDashboard({ progress, onBack }) {
                   setCleanResult({ name: n, ...r });
                 }}
                 className="pressable bg-gray-50 hover:bg-gray-100 rounded-xl p-3 text-sm font-semibold border border-gray-200 disabled:opacity-50">
-                {cleaningFor === n ? 'Cleaningâ€¦' : `Clean ${n}'s data`}
+                {cleaningFor === n ? 'Cleaning…' : `Clean ${n}'s data`}
               </button>
             ))}
           </div>
           {cleanResult && (
             <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-900">
               {cleanResult.error ? (
-                <span>âš ï¸ Error: {cleanResult.error}</span>
+                <span>⚠️ Error: {cleanResult.error}</span>
               ) : (
                 <>
-                  âœ… Cleaned {cleanResult.name}'s data.
+                  ✅ Cleaned {cleanResult.name}'s data.
                   {cleanResult.removedKeys && cleanResult.removedKeys.length > 0 && (
                     <> Removed {cleanResult.removedKeys.length} bad key{cleanResult.removedKeys.length > 1 ? 's' : ''} <span className="text-emerald-700 font-mono text-xs">({cleanResult.removedKeys.join(', ')})</span>.</>
                   )}
                   {cleanResult.fixedValues > 0 && <> Fixed {cleanResult.fixedValues} invalid value{cleanResult.fixedValues > 1 ? 's' : ''}.</>}
-                  {(!cleanResult.removedKeys || cleanResult.removedKeys.length === 0) && !cleanResult.fixedValues && <> Nothing to clean â€” record was already healthy.</>}
+                  {(!cleanResult.removedKeys || cleanResult.removedKeys.length === 0) && !cleanResult.fixedValues && <> Nothing to clean — record was already healthy.</>}
                   {' '}Refresh the app on their iPad to see the corrected view.
                 </>
               )}
@@ -1187,7 +1187,7 @@ function ParentDashboard({ progress, onBack }) {
                     value={newPin}
                     onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
                     className="w-full p-4 rounded-xl border-4 border-indigo-200 text-center font-display text-3xl tracking-widest"
-                    placeholder="â€¢â€¢â€¢â€¢" />
+                    placeholder="••••" />
                   <div className="text-xs text-gray-400 mt-2">Enter a new 4-digit PIN.</div>
                   <div className="flex gap-2 mt-4">
                     <button onClick={() => setPinChanging(false)} className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold pressable">Cancel</button>
@@ -1233,9 +1233,9 @@ function dayPoints(dayObj, activities) {
 
 /* ------ Adaptive difficulty ------
    Look at the last 3 completed days' scores for this subject and compute a
-   tier offset of -1, 0, or +1. Invisible to the kids â€” the getter functions
+   tier offset of -1, 0, or +1. Invisible to the kids — the getter functions
    in content.js use this offset to pick harder or easier content.
-   Rule: average >= 80% over last 3 attempts â†’ +1, <= 40% â†’ -1, else 0.
+   Rule: average >= 80% over last 3 attempts → +1, <= 40% → -1, else 0.
 */
 const ACTIVITY_MAX = { spelling: 10, vocab: 20, writing: 10, math: 10, reading: 4, puzzles: 10, history: 10, geography: 10, science: 10 };
 
@@ -1309,12 +1309,12 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
   const todayTopic = todaySubject ? lessonTopicFor(todaySubject, currentDay) : null;
 
   const baseActivities = [
-    { id: 'spelling', label: 'Spelling',   icon: Volume2,    emoji: 'ðŸ”Š', color: 'from-amber-300 to-orange-400',  outOf: 10 },
-    { id: 'vocab',    label: 'Vocabulary', icon: BookOpen,   emoji: 'ðŸ“š', color: 'from-sky-300 to-indigo-400',    outOf: 20 },
-    { id: 'writing',  label: 'Writing',    icon: PenTool,    emoji: 'âœï¸', color: 'from-emerald-300 to-green-500', outOf: 10 },
-    { id: 'math',     label: 'Maths',      icon: Calculator, emoji: 'ðŸ§®', color: 'from-violet-300 to-purple-500', outOf: 10 },
-    { id: 'reading',  label: 'Reading',    icon: Headphones, emoji: 'ðŸ“–', color: 'from-rose-300 to-red-400',      outOf: 4  },
-    { id: 'puzzles',  label: 'Puzzles',    icon: Brain,      emoji: 'ðŸ§ ', color: 'from-indigo-400 to-fuchsia-500', outOf: 10 }
+    { id: 'spelling', label: 'Spelling',   icon: Volume2,    emoji: '🔊', color: 'from-amber-300 to-orange-400',  outOf: 10 },
+    { id: 'vocab',    label: 'Vocabulary', icon: BookOpen,   emoji: '📚', color: 'from-sky-300 to-indigo-400',    outOf: 20 },
+    { id: 'writing',  label: 'Writing',    icon: PenTool,    emoji: '✏️', color: 'from-emerald-300 to-green-500', outOf: 10 },
+    { id: 'math',     label: 'Maths',      icon: Calculator, emoji: '🧮', color: 'from-violet-300 to-purple-500', outOf: 10 },
+    { id: 'reading',  label: 'Reading',    icon: Headphones, emoji: '📖', color: 'from-rose-300 to-red-400',      outOf: 4  },
+    { id: 'puzzles',  label: 'Puzzles',    icon: Brain,      emoji: '🧠', color: 'from-indigo-400 to-fuchsia-500', outOf: 10 }
   ];
 
   // Add today's subject lesson card if not Sunday
@@ -1341,11 +1341,11 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
   const myAllDone = isDayComplete(user, currentDay);
   const sisAllDone = sister ? isDayComplete(sister, currentDay) : false;
 
-  // Trophy cabinet â€” one trophy per fully completed day
+  // Trophy cabinet — one trophy per fully completed day
   const myCompleted = [];
   for (let d = 1; d < currentDay; d++) if (isDayComplete(user, d)) myCompleted.push(d);
 
-  // Streak â€” consecutive days ending yesterday
+  // Streak — consecutive days ending yesterday
   const streak = useMemo(() => calcStreak(progress[user], currentDay), [progress, user, currentDay]);
 
   return (
@@ -1358,7 +1358,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
           </div>
           <div>
             <div className={`${me.font} text-3xl md:text-5xl font-bold ${me.text}`}>Hi {user}!</div>
-            <div className="text-gray-500 text-sm md:text-base font-medium">{me.worldName} Â· {me.tagline}</div>
+            <div className="text-gray-500 text-sm md:text-base font-medium">{me.worldName} · {me.tagline}</div>
           </div>
         </div>
         <div className="flex gap-2">
@@ -1397,7 +1397,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
         </div>
       </div>
 
-      {/* Sister strip â€” only shown for Ava & Layla (they see each other) */}
+      {/* Sister strip — only shown for Ava & Layla (they see each other) */}
       {sister && (
         <div className="rounded-3xl p-5 bg-white kid-shadow mb-6">
           <div className="flex items-center gap-4">
@@ -1412,21 +1412,21 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
                     <span>{a.emoji}</span>
                     {sisDay[a.id] !== undefined
                       ? <span className="text-emerald-600 font-semibold">{sisDay[a.id]}/{a.outOf}</span>
-                      : <span className="text-gray-400">â€”</span>}
+                      : <span className="text-gray-400">—</span>}
                   </span>
                 ))}
               </div>
             </div>
-            {sisAllDone && <div className="text-2xl">âœ…</div>}
+            {sisAllDone && <div className="text-2xl">✅</div>}
           </div>
         </div>
       )}
 
-      {/* Leaderboard button â€” visible to all, so everyone can see how everyone's doing */}
+      {/* Leaderboard button — visible to all, so everyone can see how everyone's doing */}
       <button onClick={() => { sfx.pop(); setScreen('leaderboard'); }}
         className="w-full rounded-3xl p-4 bg-gradient-to-r from-amber-400 via-pink-400 to-violet-500 text-white kid-shadow mb-6 pressable flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">ðŸ†</span>
+          <span className="text-3xl">🏆</span>
           <div className="text-left">
             <div className="font-display text-lg font-bold">Leaderboard</div>
             <div className="text-sm opacity-90">See how everyone's doing</div>
@@ -1450,7 +1450,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
               <div className="absolute -bottom-6 -right-6 text-[7rem] opacity-15 select-none">{a.emoji}</div>
               {paused && (
                 <div className="absolute top-3 left-3 bg-white/95 text-amber-700 rounded-full px-3 py-1 text-xs font-display font-bold flex items-center gap-1 shadow-lg">
-                  â¸ Paused â€” tap to resume
+                  ⏸ Paused — tap to resume
                 </div>
               )}
               <div className="relative flex items-start justify-between">
@@ -1462,7 +1462,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
                   <div className="font-display text-2xl font-bold">{a.label}</div>
                   <div className="opacity-90 text-sm mt-1">
                     {a.id === 'spelling' && '10 words spoken aloud'}
-                    {a.id === 'vocab'    && '10 words Â· meaning + usage'}
+                    {a.id === 'vocab'    && '10 words · meaning + usage'}
                     {a.id === 'writing'  && 'Write 10 sentences'}
                     {a.id === 'math'     && '10 mixed questions'}
                     {a.id === 'reading'  && '3-min story + quiz'}
@@ -1480,11 +1480,11 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
         {myAllDone && (
           <button onClick={() => { sfx.fanfare(); setScreen('dayDone'); }}
             className="pressable kid-shadow rounded-[1.75rem] p-6 bg-gradient-to-br from-amber-300 via-yellow-400 to-orange-500 text-white text-left relative overflow-hidden">
-            <div className="absolute -bottom-6 -right-6 text-[7rem] opacity-20 select-none">ðŸ†</div>
+            <div className="absolute -bottom-6 -right-6 text-[7rem] opacity-20 select-none">🏆</div>
             <div className="relative">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-12 h-12 rounded-2xl bg-white/25 flex items-center justify-center"><Trophy className="w-6 h-6" /></div>
-                <span className="text-3xl">ðŸŽ‰</span>
+                <span className="text-3xl">🎉</span>
               </div>
               <div className="font-display text-2xl font-bold">Day Complete!</div>
               <div className="opacity-90 text-sm mt-1">Tap to see your celebration</div>
@@ -1506,7 +1506,7 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
               const earned = myCompleted.includes(d);
               return (
                 <div key={d} className={`trophy-slot ${earned ? 'earned' : ''}`} title={`Day ${d}`}>
-                  {earned ? (user === 'Ava' ? 'ðŸ’–' : user === 'Layla' ? 'ðŸ†' : 'ðŸ¦´') : <span className="text-gray-300 text-xs">{d}</span>}
+                  {earned ? (user === 'Ava' ? '💖' : user === 'Layla' ? '🏆' : '🦴') : <span className="text-gray-300 text-xs">{d}</span>}
                 </div>
               );
             })}
@@ -1514,23 +1514,23 @@ function Home({ user, progress, currentDay, setScreen, switchUser, isDayComplete
         </div>
       )}
 
-      {/* Footer status â€” depends on pairing rule */}
+      {/* Footer status — depends on pairing rule */}
       <div className="rounded-3xl p-5 bg-white kid-shadow text-center">
-        {!myAllDone && (<div className="font-display text-xl text-gray-700">Finish all {activities.length} activities to unlock Day {currentDay + 1}! ðŸš€</div>)}
+        {!myAllDone && (<div className="font-display text-xl text-gray-700">Finish all {activities.length} activities to unlock Day {currentDay + 1}! 🚀</div>)}
         {/* Sisters wait for each other */}
-        {sister && myAllDone && !sisAllDone && (<div className="font-display text-xl text-gray-700">Amazing work, {user}! ðŸŽ‰ Waiting for <span className={them.text}>{sister}</span> to finish Day {currentDay}â€¦</div>)}
-        {sister && myAllDone && sisAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">You both finished Day {currentDay}! Day {currentDay + 1} is unlockingâ€¦ ðŸŽŠ</div>)}
-        {sister && currentDay >= TOTAL_DAYS && myAllDone && sisAllDone && (<div className="font-display text-2xl text-purple-700">ðŸ† You completed all {TOTAL_DAYS} days! You're superstars! ðŸ†</div>)}
+        {sister && myAllDone && !sisAllDone && (<div className="font-display text-xl text-gray-700">Amazing work, {user}! 🎉 Waiting for <span className={them.text}>{sister}</span> to finish Day {currentDay}…</div>)}
+        {sister && myAllDone && sisAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">You both finished Day {currentDay}! Day {currentDay + 1} is unlocking… 🎊</div>)}
+        {sister && currentDay >= TOTAL_DAYS && myAllDone && sisAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're superstars! 🏆</div>)}
         {/* Solo kids (e.g. Shyal) */}
-        {!sister && myAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">Day {currentDay} complete! ðŸŽ‰ Day {currentDay + 1} is unlockingâ€¦</div>)}
-        {!sister && currentDay >= TOTAL_DAYS && myAllDone && (<div className="font-display text-2xl text-purple-700">ðŸ† You completed all {TOTAL_DAYS} days! You're a superstar! ðŸ†</div>)}
+        {!sister && myAllDone && currentDay < TOTAL_DAYS && (<div className="font-display text-xl text-emerald-600">Day {currentDay} complete! 🎉 Day {currentDay + 1} is unlocking…</div>)}
+        {!sister && currentDay >= TOTAL_DAYS && myAllDone && (<div className="font-display text-2xl text-purple-700">🏆 You completed all {TOTAL_DAYS} days! You're a superstar! 🏆</div>)}
       </div>
     </div>
   );
 }
 
 /* ============================================================
-   SHARED â€” Activity shell
+   SHARED — Activity shell
    ============================================================ */
 function ActivityShell({ user, title, emoji, color, onBack, onSaveExit, step, total, children }) {
   return (
@@ -1544,7 +1544,7 @@ function ActivityShell({ user, title, emoji, color, onBack, onSaveExit, step, to
         </div>
         {onSaveExit ? (
           <button onClick={onSaveExit} className="pressable bg-emerald-50 kid-shadow rounded-2xl px-3 py-3 flex items-center gap-2 text-emerald-700 font-semibold border-2 border-emerald-100" title="Save progress and go home">
-            ðŸ’¾ <span className="hidden sm:inline">Save & exit</span>
+            💾 <span className="hidden sm:inline">Save & exit</span>
           </button>
         ) : (
           <div className="w-[44px] md:w-[130px]" />
@@ -1567,7 +1567,7 @@ function ActivityShell({ user, title, emoji, color, onBack, onSaveExit, step, to
 }
 
 /* ============================================================
-   RESUME PROMPT â€” shown on activity entry if saved state exists
+   RESUME PROMPT — shown on activity entry if saved state exists
    ============================================================ */
 function ResumePrompt({ user, title, emoji, color, savedAt, stepInfo, onResume, onStartOver, onBack }) {
   const when = savedAt ? new Date(savedAt) : null;
@@ -1575,12 +1575,12 @@ function ResumePrompt({ user, title, emoji, color, savedAt, stepInfo, onResume, 
   return (
     <ActivityShell user={user} title={title} emoji={emoji} color={color} onBack={onBack}>
       <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-10 text-center pop-in">
-        <div className="text-6xl mb-3">â¸ï¸</div>
+        <div className="text-6xl mb-3">⏸️</div>
         <div className="font-display text-2xl md:text-3xl text-gray-800 mb-2">You were partway through this!</div>
-        <div className="text-gray-500 mb-5">Paused {whenTxt}{stepInfo ? ` Â· ${stepInfo}` : ''}</div>
+        <div className="text-gray-500 mb-5">Paused {whenTxt}{stepInfo ? ` · ${stepInfo}` : ''}</div>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button onClick={onResume} className={`pressable px-8 py-3 rounded-2xl bg-gradient-to-r ${color} text-white font-display font-bold text-lg kid-shadow`}>
-            Continue from where I left off â†’
+            Continue from where I left off →
           </button>
           <button onClick={onStartOver} className="pressable px-6 py-3 rounded-2xl bg-white border-2 border-gray-200 text-gray-600 font-display font-semibold">
             Start over
@@ -1608,7 +1608,7 @@ function useResumable(activity, user, currentDay) {
         setSaved(data);
         setPhase('prompt');
       } else {
-        // Saved state is stale (different day) â€” clear it silently
+        // Saved state is stale (different day) — clear it silently
         if (data) clearInProgress(user, activity);
         setPhase('ready');
       }
@@ -1628,7 +1628,7 @@ function useResumable(activity, user, currentDay) {
   return { phase, saved, save, clear, resume, startOver };
 }
 /* ============================================================
-   SPELLING â€” hint button + memory tips + type-3-times learning loop
+   SPELLING — hint button + memory tips + type-3-times learning loop
    ============================================================ */
 function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen }) {
   const userProgress = progress[user] || {};
@@ -1733,7 +1733,7 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
       });
       // Show the feedback card with LEARN button
     } else {
-      // Correct â€” advance after a short pause
+      // Correct — advance after a short pause
       setTimeout(() => { setLastResult(null); advanceOrFinish(newResults); }, 900);
     }
   }
@@ -1757,7 +1757,7 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
       setLearnCorrectCount(newCount);
       setLearnInput('');
       if (newCount >= 3) {
-        // Done learning â€” advance
+        // Done learning — advance
         setTimeout(() => {
           setLearnMode(false);
           setLearnWord('');
@@ -1778,8 +1778,8 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
   // ---- SAVE-RESUME PROMPT ----
   if (R.phase === 'loading') {
     return (
-      <ActivityShell user={user} title="Spelling" emoji="ðŸ”Š" color="from-amber-400 to-orange-500" onBack={() => setScreen('home')}>
-        <div className="bg-white kid-shadow rounded-[2rem] p-10 text-center"><div className="text-5xl mb-3 floaty">ðŸ”Š</div><div className="text-gray-500">Loadingâ€¦</div></div>
+      <ActivityShell user={user} title="Spelling" emoji="🔊" color="from-amber-400 to-orange-500" onBack={() => setScreen('home')}>
+        <div className="bg-white kid-shadow rounded-[2rem] p-10 text-center"><div className="text-5xl mb-3 floaty">🔊</div><div className="text-gray-500">Loading…</div></div>
       </ActivityShell>
     );
   }
@@ -1788,7 +1788,7 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
     const stepInfo = saved.state && typeof saved.state.step === 'number'
       ? `On word ${Math.min(saved.state.step + 1, words.length)} of ${words.length}` : null;
     return (
-      <ResumePrompt user={user} title="Spelling" emoji="ðŸ”Š" color="from-amber-400 to-orange-500"
+      <ResumePrompt user={user} title="Spelling" emoji="🔊" color="from-amber-400 to-orange-500"
         savedAt={saved.savedAt} stepInfo={stepInfo}
         onResume={R.resume} onStartOver={R.startOver} onBack={() => setScreen('home')} />
     );
@@ -1798,7 +1798,7 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
   if (done) {
     const score = results.filter(r => r.correct).length;
     return (
-      <ActivityShell user={user} title="Spelling" emoji="ðŸ”Š" color="from-amber-400 to-orange-500" onBack={() => setScreen('home')}>
+      <ActivityShell user={user} title="Spelling" emoji="🔊" color="from-amber-400 to-orange-500" onBack={() => setScreen('home')}>
         <ResultsCard
           theme={theme}
           color="from-amber-300 to-orange-500"
@@ -1808,8 +1808,8 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
             label: r.correct
               ? <span className="font-semibold">{r.word}</span>
               : <span>
-                  <s className="opacity-70">{r.answer || '(blank)'}</s> â†’ <b>{r.word}</b>
-                  {tipsByWord[r.word] && <div className="text-sm text-gray-600 mt-1 italic">ðŸ’¡ {tipsByWord[r.word]}</div>}
+                  <s className="opacity-70">{r.answer || '(blank)'}</s> → <b>{r.word}</b>
+                  {tipsByWord[r.word] && <div className="text-sm text-gray-600 mt-1 italic">💡 {tipsByWord[r.word]}</div>}
                 </span>
           }))}
           onDone={() => setScreen('home')}
@@ -1822,12 +1822,12 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
   if (learnMode) {
     const progress = (learnCorrectCount / 3) * 100;
     return (
-      <ActivityShell user={user} title="Let's learn it!" emoji="âœï¸" color="from-amber-400 to-orange-500"
+      <ActivityShell user={user} title="Let's learn it!" emoji="✍️" color="from-amber-400 to-orange-500"
         onBack={() => setScreen('home')} onSaveExit={saveAndExit} step={step} total={words.length}>
         <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-10 text-center pop-in">
-          <div className="text-5xl mb-3">âœ¨</div>
+          <div className="text-5xl mb-3">✨</div>
           <div className="font-display text-2xl md:text-3xl text-gray-800 mb-2">Let's remember this word</div>
-          <div className="text-gray-500 mb-6">Type it correctly <b>3 times</b> so it sticks ðŸ§ </div>
+          <div className="text-gray-500 mb-6">Type it correctly <b>3 times</b> so it sticks 🧠</div>
 
           {/* The correct word displayed big */}
           <div className="inline-block bg-gradient-to-br from-amber-100 to-orange-100 px-6 py-4 rounded-2xl mb-3 kid-shadow">
@@ -1847,21 +1847,21 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
               <div key={i} className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl transition-all ${
                 i < learnCorrectCount ? 'bg-emerald-500 text-white scale-110' : 'bg-gray-200 text-gray-400'
               }`}>
-                {i < learnCorrectCount ? 'âœ“' : i + 1}
+                {i < learnCorrectCount ? '✓' : i + 1}
               </div>
             ))}
           </div>
 
           <form onSubmit={submitLearn} className="max-w-md mx-auto">
             <input ref={learnInputRef} type="text" autoFocus autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-              value={learnInput} onChange={e => setLearnInput(e.target.value)} placeholder="Type the wordâ€¦"
+              value={learnInput} onChange={e => setLearnInput(e.target.value)} placeholder="Type the word…"
               className={`w-full text-center font-display text-3xl md:text-4xl p-5 rounded-2xl t-input ${learnShake ? 'shake' : ''}`} />
             <button type="submit" disabled={!learnInput.trim()}
               className="pressable mt-4 px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-emerald-600 text-white font-display font-bold text-lg kid-shadow disabled:opacity-40">
               Check ({learnCorrectCount}/3)
             </button>
           </form>
-          <div className="text-xs text-gray-400 mt-4">You don't need to get this attempt right for your score â€” just learn the spelling ðŸ’ª</div>
+          <div className="text-xs text-gray-400 mt-4">You don't need to get this attempt right for your score — just learn the spelling 💪</div>
         </div>
       </ActivityShell>
     );
@@ -1870,11 +1870,11 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
   // ---- FEEDBACK AFTER WRONG ANSWER ----
   if (lastResult && !lastResult.correct) {
     return (
-      <ActivityShell user={user} title="Spelling" emoji="ðŸ”Š" color="from-amber-400 to-orange-500"
+      <ActivityShell user={user} title="Spelling" emoji="🔊" color="from-amber-400 to-orange-500"
         onBack={() => setScreen('home')} step={step} total={words.length}>
         <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-10 text-center pop-in">
-          <div className="text-5xl mb-3">ðŸ’ª</div>
-          <div className="font-display text-2xl md:text-3xl text-gray-800 mb-4">Not quite â€” let's learn it!</div>
+          <div className="text-5xl mb-3">💪</div>
+          <div className="font-display text-2xl md:text-3xl text-gray-800 mb-4">Not quite — let's learn it!</div>
           <div className="flex items-center justify-center gap-3 mb-2">
             <div className="text-xl text-gray-500"><s>{lastResult.attempt || '(blank)'}</s></div>
             <ChevronRight className="w-6 h-6 text-gray-400" />
@@ -1888,7 +1888,7 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
           </button>
           <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
             <button onClick={beginLearnPhase} className="pressable px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-emerald-600 text-white font-display font-bold text-lg kid-shadow">
-              Let's practise it! âœï¸
+              Let's practise it! ✍️
             </button>
             <button onClick={() => { setLastResult(null); advanceOrFinish(results); }}
               className="pressable px-6 py-3 rounded-2xl bg-white border-2 border-gray-200 text-gray-600 font-display font-semibold">
@@ -1903,10 +1903,10 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
   // ---- CORRECT ANSWER FLASH ----
   if (lastResult && lastResult.correct) {
     return (
-      <ActivityShell user={user} title="Spelling" emoji="ðŸ”Š" color="from-amber-400 to-orange-500"
+      <ActivityShell user={user} title="Spelling" emoji="🔊" color="from-amber-400 to-orange-500"
         onBack={() => setScreen('home')} step={step} total={words.length}>
         <div className="bg-white kid-shadow rounded-[2rem] p-10 text-center pop-in">
-          <div className="text-7xl mb-4">ðŸŽ‰</div>
+          <div className="text-7xl mb-4">🎉</div>
           <div className="font-display text-3xl text-emerald-600 font-bold">Correct!</div>
           <div className="font-display text-2xl text-gray-700 mt-2">{lastResult.word}</div>
         </div>
@@ -1916,10 +1916,10 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
 
   // ---- NORMAL QUESTION VIEW ----
   return (
-    <ActivityShell user={user} title="Spelling" emoji="ðŸ”Š" color="from-amber-400 to-orange-500"
+    <ActivityShell user={user} title="Spelling" emoji="🔊" color="from-amber-400 to-orange-500"
       onBack={() => setScreen('home')} onSaveExit={saveAndExit} step={step} total={words.length}>
       <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-12 text-center pop-in">
-        <div className="text-gray-500 mb-4 font-semibold">Tap the speaker to hear your word ðŸ‘‚</div>
+        <div className="text-gray-500 mb-4 font-semibold">Tap the speaker to hear your word 👂</div>
         <button onClick={() => { sfx.pop(); speakWord(words[step]); }}
           className="pressable mx-auto mb-6 w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-amber-300 to-orange-500 text-white flex items-center justify-center kid-shadow">
           <Volume2 className="w-16 h-16 md:w-20 md:h-20" />
@@ -1930,7 +1930,7 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
           {!hintVisible ? (
             <button type="button" onClick={fetchHint} disabled={hintLoading}
               className="pressable inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-100 text-sky-800 font-semibold border-2 border-sky-200 disabled:opacity-60">
-              <Sparkles className="w-4 h-4" /> {hintLoading ? 'Thinkingâ€¦' : 'Show hint'}
+              <Sparkles className="w-4 h-4" /> {hintLoading ? 'Thinking…' : 'Show hint'}
             </button>
           ) : (
             <div className="inline-block max-w-md text-left bg-sky-50 border-2 border-sky-200 rounded-2xl p-3">
@@ -1946,11 +1946,11 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
         <div className="text-sm text-gray-500 mb-3">Type what you hear:</div>
         <form onSubmit={submitAnswer} className="max-w-md mx-auto">
           <input ref={inputRef} type="text" autoFocus autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-            value={input} onChange={e => setInput(e.target.value)} placeholder="Type the wordâ€¦"
+            value={input} onChange={e => setInput(e.target.value)} placeholder="Type the word…"
             className="w-full text-center font-display text-3xl md:text-4xl p-5 rounded-2xl t-input" />
           <button type="submit" disabled={!input.trim()}
             className="pressable mt-5 px-10 py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white font-display font-bold text-xl kid-shadow disabled:opacity-40 disabled:cursor-not-allowed">
-            {step + 1 === words.length ? 'Finish âœ“' : 'Next â†’'}
+            {step + 1 === words.length ? 'Finish ✓' : 'Next →'}
           </button>
         </form>
         <button onClick={() => { sfx.pop(); speakWord(words[step]); }} className="mt-5 text-amber-700 font-semibold underline text-sm flex items-center gap-1 mx-auto">
@@ -1962,7 +1962,7 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
 }
 
 /* ============================================================
-   VOCAB â€” 10 words Ã— 2 questions (meaning + usage)
+   VOCAB — 10 words × 2 questions (meaning + usage)
    ============================================================ */
 function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
   const words = useMemo(() => getVocabForDay(currentDay), [currentDay]);
@@ -1972,11 +1972,11 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
   // apply their understanding to usage sentences. Much less context-switching.
   const questions = useMemo(() => {
     const out = [];
-    // Pass 1 â€” all definitions
+    // Pass 1 — all definitions
     words.forEach((w, i) => {
       out.push({ kind: 'meaning', wordIdx: i, word: w.word, options: w.meaningOptions, correct: w.meaningCorrect, definition: w.definition });
     });
-    // Pass 2 â€” all usages
+    // Pass 2 — all usages
     words.forEach((w, i) => {
       out.push({ kind: 'usage', wordIdx: i, word: w.word, sentence: w.sentence, options: w.usageOptions, correct: w.usageCorrect, definition: w.definition });
     });
@@ -2029,12 +2029,12 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
   }
 
   if (R.phase === 'loading') {
-    return <ActivityShell user={user} title="Vocabulary" emoji="ðŸ“š" color="from-sky-400 to-indigo-500" onBack={() => setScreen('home')}><div className="bg-white rounded-[2rem] p-10 text-center"><div className="text-5xl mb-3 floaty">ðŸ“š</div><div className="text-gray-500">Loadingâ€¦</div></div></ActivityShell>;
+    return <ActivityShell user={user} title="Vocabulary" emoji="📚" color="from-sky-400 to-indigo-500" onBack={() => setScreen('home')}><div className="bg-white rounded-[2rem] p-10 text-center"><div className="text-5xl mb-3 floaty">📚</div><div className="text-gray-500">Loading…</div></div></ActivityShell>;
   }
   if (R.phase === 'prompt' && R.saved) {
     const s = R.saved.state || {};
     const info = typeof s.step === 'number' ? `On question ${Math.min(s.step + 1, questions.length)} of ${questions.length}` : null;
-    return <ResumePrompt user={user} title="Vocabulary" emoji="ðŸ“š" color="from-sky-400 to-indigo-500"
+    return <ResumePrompt user={user} title="Vocabulary" emoji="📚" color="from-sky-400 to-indigo-500"
       savedAt={R.saved.savedAt} stepInfo={info}
       onResume={R.resume} onStartOver={R.startOver} onBack={() => setScreen('home')} />;
   }
@@ -2049,7 +2049,7 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
       else byWord[r.word].usage = r.correct;
     });
     return (
-      <ActivityShell user={user} title="Vocabulary" emoji="ðŸ“š" color="from-sky-400 to-indigo-500" onBack={() => setScreen('home')}>
+      <ActivityShell user={user} title="Vocabulary" emoji="📚" color="from-sky-400 to-indigo-500" onBack={() => setScreen('home')}>
         <ResultsCard
           theme={theme}
           color="from-sky-400 to-indigo-500"
@@ -2059,7 +2059,7 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
             label: <span>
               <b>{w.word}</b>: {w.definition}
               <span className="ml-2 text-xs">
-                {w.meaning ? 'âœ…' : 'âŒ'} meaning Â· {w.usage ? 'âœ…' : 'âŒ'} usage
+                {w.meaning ? '✅' : '❌'} meaning · {w.usage ? '✅' : '❌'} usage
               </span>
             </span>
           }))}
@@ -2071,7 +2071,7 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
 
   const q = questions[step];
   return (
-    <ActivityShell user={user} title="Vocabulary" emoji="ðŸ“š" color="from-sky-400 to-indigo-500"
+    <ActivityShell user={user} title="Vocabulary" emoji="📚" color="from-sky-400 to-indigo-500"
       onBack={() => setScreen('home')} onSaveExit={saveAndExit} step={step} total={questions.length}>
       <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-10 pop-in" key={step}>
         <div className="text-center mb-6">
@@ -2120,7 +2120,7 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
 }
 
 /* ============================================================
-   WRITING â€” 10 sentences, rich feedback
+   WRITING — 10 sentences, rich feedback
    ============================================================ */
 function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
   const prompt = useMemo(() => getWritingPrompt(currentDay), [currentDay]);
@@ -2197,36 +2197,36 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
 
   if (feedback) {
     return (
-      <ActivityShell user={user} title="Writing" emoji="âœï¸" color="from-emerald-400 to-green-600" onBack={() => setScreen('home')}>
+      <ActivityShell user={user} title="Writing" emoji="✏️" color="from-emerald-400 to-green-600" onBack={() => setScreen('home')}>
         <div className="bg-white kid-shadow rounded-[2rem] p-6 md:p-8 pop-in relative overflow-hidden">
           {feedback.grade >= 6 && <Confetti avaTheme={user === 'Ava'} />}
 
           {/* Grade header */}
           <div className="text-center mb-6">
-            <div className="text-6xl mb-2">{feedback.grade >= 8 ? 'ðŸŒŸ' : feedback.grade >= 6 ? 'ðŸŽ‰' : 'ðŸ’ª'}</div>
+            <div className="text-6xl mb-2">{feedback.grade >= 8 ? '🌟' : feedback.grade >= 6 ? '🎉' : '💪'}</div>
             <div className="font-display text-2xl font-bold text-gray-800 mb-1">Your grade</div>
             <div className="font-display text-7xl font-bold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
               {feedback.grade}<span className="text-3xl text-gray-400">/10</span>
             </div>
           </div>
 
-          {/* Short, kid-friendly feedback â€” 3-4 lines total */}
+          {/* Short, kid-friendly feedback — 3-4 lines total */}
           <div className="bg-gradient-to-br from-emerald-50 to-green-50 border-4 border-emerald-200 rounded-2xl p-5 md:p-6 space-y-3 text-gray-800 text-left">
             {feedback.praise && (
               <div className="flex items-start gap-3">
-                <div className="text-2xl flex-shrink-0">â­</div>
+                <div className="text-2xl flex-shrink-0">⭐</div>
                 <div className="leading-relaxed"><span className="font-bold text-emerald-700">Well done: </span>{feedback.praise}</div>
               </div>
             )}
             {feedback.suggestion && (
               <div className="flex items-start gap-3">
-                <div className="text-2xl flex-shrink-0">âœ¨</div>
+                <div className="text-2xl flex-shrink-0">✨</div>
                 <div className="leading-relaxed"><span className="font-bold text-sky-700">Try next time: </span>{feedback.suggestion}</div>
               </div>
             )}
             {feedback.idea && (
               <div className="flex items-start gap-3">
-                <div className="text-2xl flex-shrink-0">ðŸ’¡</div>
+                <div className="text-2xl flex-shrink-0">💡</div>
                 <div className="leading-relaxed"><span className="font-bold text-violet-700">Idea for your story: </span>{feedback.idea}</div>
               </div>
             )}
@@ -2247,18 +2247,18 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
   }
 
   if (R.phase === 'loading') {
-    return <ActivityShell user={user} title="Writing" emoji="âœï¸" color="from-emerald-400 to-green-600" onBack={() => setScreen('home')}><div className="bg-white rounded-[2rem] p-10 text-center"><div className="text-5xl mb-3 floaty">âœï¸</div><div className="text-gray-500">Loadingâ€¦</div></div></ActivityShell>;
+    return <ActivityShell user={user} title="Writing" emoji="✏️" color="from-emerald-400 to-green-600" onBack={() => setScreen('home')}><div className="bg-white rounded-[2rem] p-10 text-center"><div className="text-5xl mb-3 floaty">✏️</div><div className="text-gray-500">Loading…</div></div></ActivityShell>;
   }
   if (R.phase === 'prompt' && R.saved) {
     const s = R.saved.state || {};
     const wc = s.text ? s.text.trim().split(/\s+/).filter(Boolean).length : 0;
-    return <ResumePrompt user={user} title="Writing" emoji="âœï¸" color="from-emerald-400 to-green-600"
-      savedAt={R.saved.savedAt} stepInfo={`Saved draft Â· ${wc} words so far`}
+    return <ResumePrompt user={user} title="Writing" emoji="✏️" color="from-emerald-400 to-green-600"
+      savedAt={R.saved.savedAt} stepInfo={`Saved draft · ${wc} words so far`}
       onResume={R.resume} onStartOver={R.startOver} onBack={() => setScreen('home')} />;
   }
 
   return (
-    <ActivityShell user={user} title="Writing" emoji="âœï¸" color="from-emerald-400 to-green-600"
+    <ActivityShell user={user} title="Writing" emoji="✏️" color="from-emerald-400 to-green-600"
       onBack={() => setScreen('home')} onSaveExit={saveAndExit}>
       <div className="bg-white kid-shadow rounded-[2rem] p-8 pop-in">
         <div className="uppercase tracking-widest text-xs text-emerald-600 font-semibold mb-2">Today's prompt</div>
@@ -2274,7 +2274,7 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
               className={'px-5 py-2 rounded-xl font-display font-bold text-sm transition ' +
                 (mode === 'type' ? 'bg-white text-emerald-700 shadow' : 'text-gray-500')}
             >
-              âŒ¨ï¸ Type
+              ⌨️ Type
             </button>
             <button
               type="button"
@@ -2282,7 +2282,7 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
               className={'px-5 py-2 rounded-xl font-display font-bold text-sm transition ' +
                 (mode === 'draw' ? 'bg-white text-emerald-700 shadow' : 'text-gray-500')}
             >
-              âœï¸ Draw
+              ✏️ Draw
             </button>
           </div>
           <button
@@ -2296,7 +2296,7 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
         </div>
 
         {mode === 'type' ? (
-          <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Start writing hereâ€¦" rows={12} disabled={loading}
+          <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Start writing here…" rows={12} disabled={loading}
             className="w-full p-5 rounded-2xl t-input text-lg leading-relaxed resize-y" />
         ) : (
           <InkCanvas
@@ -2310,20 +2310,20 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
           <div className="text-sm text-gray-600 font-semibold">
             {mode === 'type' ? (
               <>
-                <span className="mr-3">ðŸ“ {words} words</span>
-                <span className="mr-3">ðŸ“ {sentences} sentences</span>
-                {sentences >= 10 && <span className="text-emerald-600">âœ“ ready</span>}
+                <span className="mr-3">📝 {words} words</span>
+                <span className="mr-3">📏 {sentences} sentences</span>
+                {sentences >= 10 && <span className="text-emerald-600">✓ ready</span>}
               </>
             ) : (
               <>
-                <span className="mr-3">âœï¸ {drawStrokeCount} strokes</span>
-                {drawStrokeCount >= 10 && <span className="text-emerald-600">âœ“ ready</span>}
+                <span className="mr-3">✏️ {drawStrokeCount} strokes</span>
+                {drawStrokeCount >= 10 && <span className="text-emerald-600">✓ ready</span>}
               </>
             )}
           </div>
           <button onClick={submit} disabled={!canSubmit}
             className="pressable px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-green-600 text-white font-display font-bold text-lg kid-shadow disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
-            {loading ? <><RefreshCw className="w-5 h-5 animate-spin" /> Getting feedbackâ€¦</> : <><Send className="w-5 h-5" /> Send for feedback</>}
+            {loading ? <><RefreshCw className="w-5 h-5 animate-spin" /> Getting feedback…</> : <><Send className="w-5 h-5" /> Send for feedback</>}
           </button>
         </div>
         {mode === 'type' && words < 20 && !loading && (<div className="text-xs text-gray-400 mt-2 text-right">Write a bit more first (at least 20 words)</div>)}
@@ -2343,7 +2343,7 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
 }
 
 /* ============================================================
-   MATH â€” with AI explanations for wrong answers
+   MATH — with AI explanations for wrong answers
    ============================================================ */
 function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
   const userProgress = progress[user] || {};
@@ -2393,7 +2393,7 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
     setResults(newResults);
 
     if (correct) {
-      // Correct â€” quick advance
+      // Correct — quick advance
       setTimeout(() => {
         setInput('');
         if (step + 1 >= problems.length) {
@@ -2405,7 +2405,7 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
         } else { setStep(step + 1); }
       }, 600);
     } else {
-      // Show the working screen immediately â€” fetch explanation
+      // Show the working screen immediately — fetch explanation
       setMistake({ question: p.question, correct: p.answer, given });
       setLoadingExplain(true);
       const res = await aiCall('math-explain', { question: p.question, correct: p.answer, given, childName: user });
@@ -2442,12 +2442,12 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
 
   // ---- SAVE-RESUME PROMPT ----
   if (R.phase === 'loading') {
-    return <ActivityShell user={user} title="Maths" emoji="ðŸ§®" color="from-violet-400 to-purple-600" onBack={() => setScreen('home')}><div className="bg-white rounded-[2rem] p-10 text-center"><div className="text-5xl mb-3 floaty">ðŸ§®</div><div className="text-gray-500">Loadingâ€¦</div></div></ActivityShell>;
+    return <ActivityShell user={user} title="Maths" emoji="🧮" color="from-violet-400 to-purple-600" onBack={() => setScreen('home')}><div className="bg-white rounded-[2rem] p-10 text-center"><div className="text-5xl mb-3 floaty">🧮</div><div className="text-gray-500">Loading…</div></div></ActivityShell>;
   }
   if (R.phase === 'prompt' && R.saved) {
     const s = R.saved.state || {};
     const info = typeof s.step === 'number' ? `On question ${Math.min(s.step + 1, problems.length)} of ${problems.length}` : null;
-    return <ResumePrompt user={user} title="Maths" emoji="ðŸ§®" color="from-violet-400 to-purple-600"
+    return <ResumePrompt user={user} title="Maths" emoji="🧮" color="from-violet-400 to-purple-600"
       savedAt={R.saved.savedAt} stepInfo={info}
       onResume={R.resume} onStartOver={R.startOver} onBack={() => setScreen('home')} />;
   }
@@ -2455,7 +2455,7 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
   if (done) {
     const score = results.filter(r => r.correct).length;
     return (
-      <ActivityShell user={user} title="Maths" emoji="ðŸ§®" color="from-violet-400 to-purple-600" onBack={() => setScreen('home')}>
+      <ActivityShell user={user} title="Maths" emoji="🧮" color="from-violet-400 to-purple-600" onBack={() => setScreen('home')}>
         <ResultsCard
           theme={theme}
           color="from-violet-400 to-purple-600"
@@ -2485,11 +2485,11 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
   if (mistake) {
     const ex = mistake.explanation;
     return (
-      <ActivityShell user={user} title="Let's work it out" emoji="ðŸ§®" color="from-violet-400 to-purple-600"
+      <ActivityShell user={user} title="Let's work it out" emoji="🧮" color="from-violet-400 to-purple-600"
         onBack={() => setScreen('home')} step={step} total={problems.length}>
         <div className="bg-white kid-shadow rounded-[2rem] p-6 md:p-8 pop-in">
           <div className="text-center mb-4">
-            <div className="text-5xl mb-2">ðŸ§ </div>
+            <div className="text-5xl mb-2">🧠</div>
             <div className="font-display text-2xl md:text-3xl text-gray-800">Let's work this one out together</div>
           </div>
 
@@ -2511,8 +2511,8 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
 
           {loadingExplain && !ex && (
             <div className="text-center text-gray-500 italic py-6">
-              <div className="text-3xl mb-2 floaty">ðŸ’­</div>
-              Working out how to explain thisâ€¦
+              <div className="text-3xl mb-2 floaty">💭</div>
+              Working out how to explain this…
             </div>
           )}
 
@@ -2551,7 +2551,7 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
           <div className="text-center mt-5">
             <button onClick={continueAfterMistake}
               className="pressable px-8 py-3 rounded-2xl bg-gradient-to-r from-violet-400 to-purple-600 text-white font-display font-bold text-lg kid-shadow">
-              Got it â€” next question â†’
+              Got it — next question →
             </button>
           </div>
         </div>
@@ -2562,7 +2562,7 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
   // ---- NORMAL QUESTION VIEW ----
   const p = problems[step];
   return (
-    <ActivityShell user={user} title="Maths" emoji="ðŸ§®" color="from-violet-400 to-purple-600"
+    <ActivityShell user={user} title="Maths" emoji="🧮" color="from-violet-400 to-purple-600"
       onBack={() => setScreen('home')} onSaveExit={saveAndExit} step={step} total={problems.length}>
       <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-12 text-center pop-in">
         <div className="font-display text-6xl md:text-8xl font-bold text-gray-800 mb-2 tracking-tight">{p.question}</div>
@@ -2573,7 +2573,7 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
             className="w-full text-center font-display text-5xl md:text-6xl p-5 rounded-2xl t-input" placeholder="?" />
           <button type="submit" disabled={input === ''}
             className="pressable mt-5 px-10 py-4 rounded-2xl bg-gradient-to-r from-violet-400 to-purple-600 text-white font-display font-bold text-xl kid-shadow disabled:opacity-40">
-            {step + 1 === problems.length ? 'Finish âœ“' : 'Next â†’'}
+            {step + 1 === problems.length ? 'Finish ✓' : 'Next →'}
           </button>
         </form>
       </div>
@@ -2582,7 +2582,7 @@ function MathActivity({ user, progress, currentDay, saveActivity, setScreen }) {
 }
 
 /* ============================================================
-   READING â€” story with narration + highlight + comprehension quiz
+   READING — story with narration + highlight + comprehension quiz
    ============================================================ */
 function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   const theme = THEME[user];
@@ -2598,7 +2598,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   const timerRef = useRef(null);
   const utteranceRef = useRef(null);
 
-  // Save & resume â€” reading saves phase (story vs quiz) + quiz progress
+  // Save & resume — reading saves phase (story vs quiz) + quiz progress
   const R = useResumable('reading', user, currentDay);
   useEffect(() => {
     if (R.phase === 'ready' && R.saved && R.saved.state && phase === 'reading' && quizStep === 0 && quizResults.length === 0) {
@@ -2636,7 +2636,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
         cacheStory(currentDay, s); // share with sister
       }
     }
-    // 4) absolute fallback â€” cycle through hardcoded
+    // 4) absolute fallback — cycle through hardcoded
     if (!s) s = FALLBACK_STORIES[(currentDay - 1) % FALLBACK_STORIES.length];
 
     setStory(s);
@@ -2665,7 +2665,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
     }
 
     function findWordIdxForChar(charIdx) {
-      // Linear scan â€” lists are short enough that binary search isn't needed
+      // Linear scan — lists are short enough that binary search isn't needed
       let lastMatch = 0;
       for (let i = 0; i < wordOffsets.length; i++) {
         if (wordOffsets[i].char <= charIdx) lastMatch = wordOffsets[i].wordIdx;
@@ -2757,10 +2757,10 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
 
   if (loading) {
     return (
-      <ActivityShell user={user} title="Reading" emoji="ðŸ“–" color="from-rose-400 to-red-500" onBack={() => setScreen('home')}>
+      <ActivityShell user={user} title="Reading" emoji="📖" color="from-rose-400 to-red-500" onBack={() => setScreen('home')}>
         <div className="bg-white kid-shadow rounded-[2rem] p-10 text-center">
           <RefreshCw className="w-10 h-10 animate-spin mx-auto mb-3 text-rose-500" />
-          <div className="font-display text-xl text-gray-700">Fetching today's storyâ€¦</div>
+          <div className="font-display text-xl text-gray-700">Fetching today's story…</div>
         </div>
       </ActivityShell>
     );
@@ -2769,8 +2769,8 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   // ---- SAVE-RESUME PROMPT (shown AFTER story loaded, BEFORE regular UI) ----
   if (R.phase === 'prompt' && R.saved) {
     const s = R.saved.state || {};
-    const info = s.phase === 'quiz' ? `In the quiz Â· question ${Math.min((s.quizStep || 0) + 1, (story ? story.questions.length : 4))} of ${(story ? story.questions.length : 4)}` : 'Story in progress';
-    return <ResumePrompt user={user} title="Reading" emoji="ðŸ“–" color="from-rose-400 to-red-500"
+    const info = s.phase === 'quiz' ? `In the quiz · question ${Math.min((s.quizStep || 0) + 1, (story ? story.questions.length : 4))} of ${(story ? story.questions.length : 4)}` : 'Story in progress';
+    return <ResumePrompt user={user} title="Reading" emoji="📖" color="from-rose-400 to-red-500"
       savedAt={R.saved.savedAt} stepInfo={info}
       onResume={R.resume} onStartOver={R.startOver} onBack={() => setScreen('home')} />;
   }
@@ -2778,7 +2778,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   if (phase === 'done') {
     const score = quizResults.filter(r => r.correct).length;
     return (
-      <ActivityShell user={user} title="Reading" emoji="ðŸ“–" color="from-rose-400 to-red-500" onBack={() => setScreen('home')}>
+      <ActivityShell user={user} title="Reading" emoji="📖" color="from-rose-400 to-red-500" onBack={() => setScreen('home')}>
         <ResultsCard
           theme={theme}
           color="from-rose-400 to-red-500"
@@ -2794,7 +2794,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   if (phase === 'quiz') {
     const q = story.questions[quizStep];
     return (
-      <ActivityShell user={user} title="Comprehension" emoji="ðŸ§ " color="from-rose-400 to-red-500"
+      <ActivityShell user={user} title="Comprehension" emoji="🧠" color="from-rose-400 to-red-500"
         onBack={() => setScreen('home')} onSaveExit={saveAndExit} step={quizStep} total={story.questions.length}>
         <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-10 pop-in" key={quizStep}>
           <div className="text-center mb-6">
@@ -2831,7 +2831,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   // Reading phase
   let wordCounter = -1;
   return (
-    <ActivityShell user={user} title="Reading" emoji="ðŸ“–" color="from-rose-400 to-red-500" onBack={() => setScreen('home')} onSaveExit={saveAndExit}>
+    <ActivityShell user={user} title="Reading" emoji="📖" color="from-rose-400 to-red-500" onBack={() => setScreen('home')} onSaveExit={saveAndExit}>
       <div className="bg-white kid-shadow rounded-[2rem] p-6 md:p-10 pop-in">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <div>
@@ -2868,7 +2868,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
         <div className="mt-6 text-center">
           <button onClick={() => { stopSpeaking(); sfx.pop(); setPhase('quiz'); }}
             className="pressable px-10 py-4 rounded-2xl bg-gradient-to-r from-rose-400 to-red-500 text-white font-display font-bold text-xl kid-shadow">
-            I'm ready for the quiz â†’
+            I'm ready for the quiz →
           </button>
           <div className="text-xs text-gray-500 mt-2">You can listen to the story more than once before starting</div>
         </div>
@@ -2878,9 +2878,9 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
 }
 
 /* ============================================================
-   v3: LESSON ACTIVITY â€” history / geography / science
+   v3: LESSON ACTIVITY — history / geography / science
    Pattern:
-     - Load lesson (cache â†’ hardcoded fallback â†’ API â†’ ultimate fallback)
+     - Load lesson (cache → hardcoded fallback → API → ultimate fallback)
      - Phase 'slides': narrated slide carousel with image or SVG animation,
                         plus "Watch on BBC Bitesize" button if hasVideo
      - Phase 'quiz': 10-question MCQ, like Reading comprehension
@@ -2973,7 +2973,7 @@ function SlideImage({ slide }) {
       if (cancelled) return;
       if (a) { setUrl(a); setReady(true); return; }
 
-      // 3. Wikipedia search â†’ pageimages
+      // 3. Wikipedia search → pageimages
       const b = await tryWikipediaSearch(q);
       if (cancelled) return;
       if (b) { setUrl(b); setReady(true); return; }
@@ -2983,18 +2983,18 @@ function SlideImage({ slide }) {
       if (cancelled) return;
       if (c) { setUrl(c); setReady(true); return; }
 
-      // 5. All failed â€” show placeholder
+      // 5. All failed — show placeholder
       if (!cancelled) { setReady(true); setFailed(true); }
     }
     go();
     return () => { cancelled = true; };
   }, [slide.imageQuery, slide.imageFallback]);
 
-  // Placeholder (loading or all fallbacks failed) â€” themed and pleasant, not broken-image
+  // Placeholder (loading or all fallbacks failed) — themed and pleasant, not broken-image
   if (!ready) {
     return (
       <div className="w-full h-64 md:h-80 rounded-3xl bg-gradient-to-br from-sky-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-6xl opacity-40 floaty">ðŸ–¼ï¸</div>
+        <div className="text-6xl opacity-40 floaty">🖼️</div>
       </div>
     );
   }
@@ -3003,7 +3003,7 @@ function SlideImage({ slide }) {
     const label = (slide.title || slide.imageQuery || 'lesson').split(/\s+/).slice(0, 3).join(' ');
     return (
       <div className="w-full h-64 md:h-80 rounded-3xl bg-gradient-to-br from-indigo-100 via-sky-100 to-emerald-100 flex flex-col items-center justify-center p-6">
-        <div className="text-5xl mb-2">ðŸ“š</div>
+        <div className="text-5xl mb-2">📚</div>
         <div className="font-display text-xl text-gray-600 text-center max-w-md">{label}</div>
       </div>
     );
@@ -3019,12 +3019,12 @@ function SlideImage({ slide }) {
 }
 
 /* ============================================================
-   PUZZLES â€” 5 verbal + 5 non-verbal reasoning (11+ prep)
+   PUZZLES — 5 verbal + 5 non-verbal reasoning (11+ prep)
    ============================================================ */
 function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen }) {
   const theme = THEME[user];
 
-  // Adaptive tier offsets â€” invisible to kids
+  // Adaptive tier offsets — invisible to kids
   const userProgress = progress[user] || {};
   const verbalOffset = useMemo(() => tierOffsetFor(userProgress, 'puzzles', currentDay), [userProgress, currentDay]);
   const nonverbalOffset = verbalOffset; // share the same offset for now
@@ -3085,17 +3085,17 @@ function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen })
   }
 
   if (R.phase === 'loading') {
-    return <ActivityShell user={user} title="Puzzles" emoji="ðŸ§ " color="from-indigo-400 to-fuchsia-500" onBack={() => setScreen('home')}>
+    return <ActivityShell user={user} title="Puzzles" emoji="🧠" color="from-indigo-400 to-fuchsia-500" onBack={() => setScreen('home')}>
       <div className="bg-white rounded-[2rem] p-10 text-center">
-        <div className="text-5xl mb-3 floaty">ðŸ§ </div>
-        <div className="text-gray-500">Loadingâ€¦</div>
+        <div className="text-5xl mb-3 floaty">🧠</div>
+        <div className="text-gray-500">Loading…</div>
       </div>
     </ActivityShell>;
   }
   if (R.phase === 'prompt' && R.saved) {
     const s = R.saved.state || {};
     const info = typeof s.step === 'number' ? `On puzzle ${Math.min(s.step + 1, questions.length)} of ${questions.length}` : null;
-    return <ResumePrompt user={user} title="Puzzles" emoji="ðŸ§ " color="from-indigo-400 to-fuchsia-500"
+    return <ResumePrompt user={user} title="Puzzles" emoji="🧠" color="from-indigo-400 to-fuchsia-500"
       savedAt={R.saved.savedAt} stepInfo={info}
       onResume={R.resume} onStartOver={R.startOver} onBack={() => setScreen('home')} />;
   }
@@ -3103,14 +3103,14 @@ function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen })
   if (done) {
     const score = results.filter(r => r.correct).length;
     return (
-      <ActivityShell user={user} title="Puzzles" emoji="ðŸ§ " color="from-indigo-400 to-fuchsia-500" onBack={() => setScreen('home')}>
+      <ActivityShell user={user} title="Puzzles" emoji="🧠" color="from-indigo-400 to-fuchsia-500" onBack={() => setScreen('home')}>
         <div className={`rounded-[2rem] p-8 kid-shadow ${theme.gradient} text-white text-center relative overflow-hidden`}>
           {score >= 6 && <Confetti avaTheme={user === 'Ava'} count={50} />}
           <div className="relative">
             <div className="flex justify-center mb-4"><Mascot who={user} mood={score >= 6 ? 'happy' : 'idle'} size={110} /></div>
             <div className="font-display text-4xl font-bold mb-2">{score === 10 ? 'Perfect brain!' : score >= 8 ? 'Great thinking!' : score >= 5 ? 'Good work!' : 'Nice try!'}</div>
             <div className="font-display text-6xl font-bold my-3">{score}<span className="text-3xl opacity-80">/10</span></div>
-            <div className="opacity-95">5 verbal + 5 non-verbal Â· keep practising!</div>
+            <div className="opacity-95">5 verbal + 5 non-verbal · keep practising!</div>
           </div>
         </div>
         <div className="bg-white rounded-[2rem] p-5 kid-shadow mt-5 max-h-96 overflow-auto">
@@ -3119,11 +3119,11 @@ function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen })
             <div key={i} className={`p-3 rounded-xl mb-2 text-sm ${r.correct ? 'bg-emerald-50' : 'bg-rose-50'}`}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-bold">{i + 1}.</span>
-                <span className="text-xs bg-white rounded-full px-2 py-0.5 text-gray-500">{r.kind === 'verbal' ? 'ðŸ“– Verbal' : 'ðŸ”· Non-verbal'}</span>
+                <span className="text-xs bg-white rounded-full px-2 py-0.5 text-gray-500">{r.kind === 'verbal' ? '📖 Verbal' : '🔷 Non-verbal'}</span>
                 {r.correct ? <Check className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-rose-600" />}
               </div>
               <div className="text-gray-700">{r.question}</div>
-              {!r.correct && r.explain && <div className="text-gray-500 italic mt-1">ðŸ’¡ {r.explain}</div>}
+              {!r.correct && r.explain && <div className="text-gray-500 italic mt-1">💡 {r.explain}</div>}
             </div>
           ))}
         </div>
@@ -3140,7 +3140,7 @@ function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen })
   const showState = picked !== null;
 
   return (
-    <ActivityShell user={user} title="Puzzles" emoji="ðŸ§ " color="from-indigo-400 to-fuchsia-500" onBack={saveAndExit}>
+    <ActivityShell user={user} title="Puzzles" emoji="🧠" color="from-indigo-400 to-fuchsia-500" onBack={saveAndExit}>
       {/* Progress */}
       <div className="mb-4 flex items-center gap-3">
         <div className="flex-1 bg-white rounded-full h-3 overflow-hidden kid-shadow">
@@ -3153,7 +3153,7 @@ function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen })
       <div className="bg-white rounded-[2rem] p-6 md:p-7 kid-shadow mb-5">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs bg-indigo-100 text-indigo-700 font-semibold rounded-full px-3 py-1">
-            {isVerbal ? 'ðŸ“– Verbal' : 'ðŸ”· Non-verbal'}
+            {isVerbal ? '📖 Verbal' : '🔷 Non-verbal'}
           </span>
         </div>
         <div className="font-display text-xl md:text-2xl text-gray-800 mb-5">{q.question}</div>
@@ -3164,10 +3164,10 @@ function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen })
             {q.showSequence.map((svg, i) => (
               <React.Fragment key={i}>
                 <div dangerouslySetInnerHTML={{ __html: svg }} />
-                {i < q.showSequence.length - 1 && <div className="text-2xl text-gray-400">â†’</div>}
+                {i < q.showSequence.length - 1 && <div className="text-2xl text-gray-400">→</div>}
               </React.Fragment>
             ))}
-            <div className="text-2xl text-gray-400">â†’</div>
+            <div className="text-2xl text-gray-400">→</div>
             <div className="w-20 h-20 border-4 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-3xl text-gray-300">?</div>
           </div>
         )}
@@ -3229,7 +3229,7 @@ function PuzzleActivity({ user, progress, currentDay, saveActivity, setScreen })
         {/* Explanation on wrong answer */}
         {showState && picked !== q.correct && q.explain && (
           <div className="mt-4 bg-amber-50 border-2 border-amber-200 rounded-xl p-3 text-sm text-amber-900">
-            <span className="font-semibold">ðŸ’¡ </span>{q.explain}
+            <span className="font-semibold">💡 </span>{q.explain}
           </div>
         )}
       </div>
@@ -3250,7 +3250,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
   const [picked, setPicked] = useState(null);
   const [showCheer, setShowCheer] = useState(false);
 
-  // Save & resume â€” keyed per subject
+  // Save & resume — keyed per subject
   const R = useResumable(`lesson-${subject}`, user, currentDay);
   useEffect(() => {
     if (R.phase === 'ready' && R.saved && R.saved.state && phase === 'slides' && slideIdx === 0 && quizStep === 0 && quizResults.length === 0) {
@@ -3300,7 +3300,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
         cacheLesson(subject, currentDay, L);
       }
     }
-    // 4) Absolute fallback â€” cycle through hardcoded for this subject
+    // 4) Absolute fallback — cycle through hardcoded for this subject
     if (!L) {
       for (let d = 1; d <= 15; d++) {
         const hc = hardcodedLessonFor(subject, ((currentDay - 1) % 15) + 1);
@@ -3366,7 +3366,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
       <ActivityShell user={user} title={meta.name} emoji={meta.emoji} color={`from-gray-300 to-gray-400`} onBack={() => setScreen('home')}>
         <div className="bg-white rounded-[2rem] p-10 kid-shadow text-center">
           <div className="text-6xl mb-4 floaty">{meta.emoji}</div>
-          <div className="font-display text-2xl text-gray-700">Preparing your {meta.name.toLowerCase()} lessonâ€¦</div>
+          <div className="font-display text-2xl text-gray-700">Preparing your {meta.name.toLowerCase()} lesson…</div>
         </div>
       </ActivityShell>
     );
@@ -3376,7 +3376,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
     return (
       <ActivityShell user={user} title={meta.name} emoji={meta.emoji} color={`from-gray-300 to-gray-400`} onBack={() => setScreen('home')}>
         <div className="bg-white rounded-[2rem] p-10 kid-shadow text-center">
-          <div className="text-6xl mb-4">ðŸ˜Ÿ</div>
+          <div className="text-6xl mb-4">😟</div>
           <div className="font-display text-2xl text-gray-700">Couldn't load today's lesson. Please try again later.</div>
           <button onClick={() => setScreen('home')} className="mt-6 px-8 py-3 rounded-2xl bg-gray-800 text-white font-display font-bold">Back</button>
         </div>
@@ -3390,7 +3390,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
                          : 'from-violet-400 to-fuchsia-600';
   if (R.phase === 'prompt' && R.saved) {
     const s = R.saved.state || {};
-    const info = s.phase === 'quiz' ? `In the quiz Â· question ${Math.min((s.quizStep || 0) + 1, lesson.questions.length)} of ${lesson.questions.length}`
+    const info = s.phase === 'quiz' ? `In the quiz · question ${Math.min((s.quizStep || 0) + 1, lesson.questions.length)} of ${lesson.questions.length}`
               : typeof s.slideIdx === 'number' ? `On slide ${Math.min(s.slideIdx + 1, lesson.slides.length)} of ${lesson.slides.length}`
               : null;
     return <ResumePrompt user={user} title={meta.name} emoji={meta.emoji} color={gradColForPrompt}
@@ -3409,7 +3409,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
         <ResultsCard
           theme={theme}
           color={gradCol}
-          title={`${meta.name} Â· ${lesson.title}`}
+          title={`${meta.name} · ${lesson.title}`}
           score={score}
           total={lesson.questions.length}
           items={quizResults.map((r, i) => ({ label: `Q${i+1}`, correct: r.right }))}
@@ -3454,10 +3454,10 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
           </div>
           {showCheer && picked !== null && (
             <div className={`mt-5 text-center font-display text-xl ${picked === q.correct ? 'text-emerald-600' : 'text-red-600'}`}>
-              {picked === q.correct ? `âœ¨ ${q.cheer || 'Great job!'}` : `ðŸ’ª The answer was: ${q.options[q.correct]}`}
+              {picked === q.correct ? `✨ ${q.cheer || 'Great job!'}` : `💪 The answer was: ${q.options[q.correct]}`}
             </div>
           )}
-          <div className="text-center text-sm text-gray-400 mt-6">Question {quizStep + 1} of {lesson.questions.length}{isLast ? ' Â· final question' : ''}</div>
+          <div className="text-center text-sm text-gray-400 mt-6">Question {quizStep + 1} of {lesson.questions.length}{isLast ? ' · final question' : ''}</div>
         </div>
       </ActivityShell>
     );
@@ -3505,7 +3505,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
           )}
         </div>
 
-        {/* Video â€” only on last slide. If videoId present, embed directly.
+        {/* Video — only on last slide. If videoId present, embed directly.
             Otherwise open BBC Bitesize's own search page (not Google). */}
         {isLastSlide && lesson.hasVideo && (lesson.videoId || lesson.bitesizeQuery || lesson.bitesizeUrl) && (
           <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-200">
@@ -3528,7 +3528,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
               <>
                 <div className="text-sm text-gray-700 mb-3">Tap to go straight to BBC Bitesize for a kid-friendly video.</div>
                 <button onClick={openBitesize} className="pressable bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2 rounded-xl kid-shadow">
-                  Open BBC Bitesize â†’
+                  Open BBC Bitesize →
                 </button>
               </>
             )}
@@ -3557,7 +3557,7 @@ function LessonActivity({ subject, user, currentDay, saveActivity, setScreen }) 
    ============================================================ */
 function ResultsCard({ theme, color, title, score, total, items, onDone }) {
   const pct = score / total;
-  const emoji = pct === 1 ? 'ðŸ†' : pct >= 0.8 ? 'ðŸŒŸ' : pct >= 0.5 ? 'ðŸŽ‰' : 'ðŸ’ª';
+  const emoji = pct === 1 ? '🏆' : pct >= 0.8 ? '🌟' : pct >= 0.5 ? '🎉' : '💪';
   return (
     <div className="bg-white kid-shadow rounded-[2rem] p-8 md:p-10 pop-in text-center relative overflow-hidden">
       {pct >= 0.5 && <Confetti avaTheme={theme.name === 'Ava'} />}
@@ -3568,7 +3568,7 @@ function ResultsCard({ theme, color, title, score, total, items, onDone }) {
         {pct === 1 && (theme.correctLine[0] + ' Perfect score!')}
         {pct >= 0.8 && pct < 1 && 'Excellent work!'}
         {pct >= 0.5 && pct < 0.8 && 'Great effort!'}
-        {pct < 0.5 && "Keep practising â€” you're getting better!"}
+        {pct < 0.5 && "Keep practising — you're getting better!"}
       </div>
       <div className="mt-6 max-h-80 overflow-auto text-left divide-y divide-gray-100 rounded-2xl border border-gray-100">
         {items.map((it, i) => (
@@ -3584,7 +3584,7 @@ function ResultsCard({ theme, color, title, score, total, items, onDone }) {
 }
 
 /* ============================================================
-   DAY COMPLETE SCREEN â€” winner/loser encouragement
+   DAY COMPLETE SCREEN — winner/loser encouragement
    ============================================================ */
 function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplete }) {
   const me = THEME[user];
@@ -3605,21 +3605,21 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
 
   let headline, sub;
   if (!sister) {
-    // Solo celebration (Shyal, etc.) â€” uses the user's own theme phrasing
+    // Solo celebration (Shyal, etc.) — uses the user's own theme phrasing
     const cheer = me.correctLine[0] || 'Amazing!';
     headline = `Brilliant, ${user}! You finished Day ${currentDay}! ${me.mascotEmoji}`;
     sub = `You scored ${my} out of ${dayMax}. ${cheer} Onwards to the next adventure!`;
   } else if (!bothDone) {
-    headline = `Brilliant, ${user}! You finished Day ${currentDay}! ðŸŽ‰`;
-    sub = `Waiting for ${sister} to catch upâ€¦`;
+    headline = `Brilliant, ${user}! You finished Day ${currentDay}! 🎉`;
+    sub = `Waiting for ${sister} to catch up…`;
   } else if (my > sis) {
-    headline = `ðŸ† ${user} wins Day ${currentDay}!`;
-    sub = `You scored ${my}. Great work! ${sister} got ${sis} â€” super close, well played!`;
+    headline = `🏆 ${user} wins Day ${currentDay}!`;
+    sub = `You scored ${my}. Great work! ${sister} got ${sis} — super close, well played!`;
   } else if (my < sis) {
-    headline = `ðŸ† ${sister} wins Day ${currentDay}!`;
-    sub = `${sister} got ${sis}, you got ${my}. Well played! Every day is a fresh chance â€” go you! ðŸ’ª`;
+    headline = `🏆 ${sister} wins Day ${currentDay}!`;
+    sub = `${sister} got ${sis}, you got ${my}. Well played! Every day is a fresh chance — go you! 💪`;
   } else {
-    headline = `ðŸ¤ Day ${currentDay} is a tie!`;
+    headline = `🤝 Day ${currentDay} is a tie!`;
     sub = `You both scored ${my}. What a match!`;
   }
 
@@ -3631,7 +3631,7 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
         <button onClick={() => { sfx.pop(); setScreen('home'); }} className="pressable bg-white kid-shadow rounded-2xl px-4 py-3 flex items-center gap-2 text-gray-700 font-semibold">
           <ArrowLeft className="w-5 h-5" /> Home
         </button>
-        <div className={`px-4 py-2 rounded-full ${me.gradient} text-white font-display font-bold`}>ðŸŽ‰ Day {currentDay}</div>
+        <div className={`px-4 py-2 rounded-full ${me.gradient} text-white font-display font-bold`}>🎉 Day {currentDay}</div>
         <div className="w-[88px]" />
       </div>
 
@@ -3645,7 +3645,7 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
         </div>
       </div>
 
-      {/* Score comparison â€” only for Ava/Layla (solo kids have no sister to compare with) */}
+      {/* Score comparison — only for Ava/Layla (solo kids have no sister to compare with) */}
       {sister ? (
         <div className="grid sm:grid-cols-2 gap-4 mt-6">
           <div className={`rounded-3xl p-5 kid-shadow ${me.gradientSoft}`}>
@@ -3661,7 +3661,7 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
               <div className={`${them.font} text-2xl font-bold ${them.text}`}>{sister}</div>
             </div>
             <div className="font-display text-5xl font-bold text-gray-800">{sis}<span className="text-xl text-gray-400"> / {dayMax}</span></div>
-            {!sisDone && <div className="text-gray-500 text-sm mt-1">Still playingâ€¦</div>}
+            {!sisDone && <div className="text-gray-500 text-sm mt-1">Still playing…</div>}
           </div>
         </div>
       ) : (
@@ -3677,7 +3677,7 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
 
       <button onClick={() => { sfx.pop(); setScreen('leaderboard'); }}
         className="mt-6 w-full pressable bg-white kid-shadow rounded-2xl p-4 font-display text-lg text-gray-700 flex items-center justify-center gap-2">
-        <Trophy className="w-5 h-5 text-amber-500" /> See leaderboard â†’
+        <Trophy className="w-5 h-5 text-amber-500" /> See leaderboard →
       </button>
     </div>
   );
@@ -3688,15 +3688,15 @@ function DayCompleteScreen({ user, progress, currentDay, setScreen, isDayComplet
    ============================================================ */
 function Leaderboard({ progress, currentDay, setScreen }) {
   const activities = [
-    { id: 'spelling',  emoji: 'ðŸ”Š', outOf: 10 },
-    { id: 'vocab',     emoji: 'ðŸ“š', outOf: 20 },
-    { id: 'writing',   emoji: 'âœï¸', outOf: 10 },
-    { id: 'math',      emoji: 'ðŸ§®', outOf: 10 },
-    { id: 'reading',   emoji: 'ðŸ“–', outOf: 4  },
-    { id: 'puzzles',   emoji: 'ðŸ§ ', outOf: 10 },
-    { id: 'history',   emoji: 'ðŸ›ï¸', outOf: 10 },
-    { id: 'geography', emoji: 'ðŸŒ', outOf: 10 },
-    { id: 'science',   emoji: 'ðŸ”¬', outOf: 10 }
+    { id: 'spelling',  emoji: '🔊', outOf: 10 },
+    { id: 'vocab',     emoji: '📚', outOf: 20 },
+    { id: 'writing',   emoji: '✏️', outOf: 10 },
+    { id: 'math',      emoji: '🧮', outOf: 10 },
+    { id: 'reading',   emoji: '📖', outOf: 4  },
+    { id: 'puzzles',   emoji: '🧠', outOf: 10 },
+    { id: 'history',   emoji: '🏛️', outOf: 10 },
+    { id: 'geography', emoji: '🌍', outOf: 10 },
+    { id: 'science',   emoji: '🔬', outOf: 10 }
   ];
   const baseCompletion = ['spelling','vocab','writing','math','reading','puzzles'];
 
@@ -3707,7 +3707,7 @@ function Leaderboard({ progress, currentDay, setScreen }) {
   })).sort((a, b) => b.total - a.total);
   const topTotal = rankings[0]?.total || 0;
 
-  // Per-day table â€” include days where ANYONE has progress (or current day)
+  // Per-day table — include days where ANYONE has progress (or current day)
   const maxDay = Math.max(currentDay, 1);
   const perDay = [];
   for (let d = 1; d <= maxDay; d++) {
@@ -3733,7 +3733,7 @@ function Leaderboard({ progress, currentDay, setScreen }) {
         <div className="w-[88px]" />
       </div>
 
-      {/* Top cards â€” sorted by total points, leader gets a crown */}
+      {/* Top cards — sorted by total points, leader gets a crown */}
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         {rankings.map((r, idx) => {
           const t = THEME[r.name];
@@ -3753,7 +3753,7 @@ function Leaderboard({ progress, currentDay, setScreen }) {
                 </div>
               </div>
               <div className="font-display text-5xl font-bold mt-2">{r.total}</div>
-              <div className="opacity-90 text-sm">total points Â· rank #{idx + 1}</div>
+              <div className="opacity-90 text-sm">total points · rank #{idx + 1}</div>
             </div>
           );
         })}
@@ -3762,7 +3762,7 @@ function Leaderboard({ progress, currentDay, setScreen }) {
       {/* Day-by-day table */}
       <div className="bg-white kid-shadow rounded-[2rem] p-5 md:p-7">
         <div className="font-display text-2xl font-bold text-gray-800 mb-4">Day by day</div>
-        {perDay.length === 0 && (<div className="text-center text-gray-400 py-6">No days completed yet â€” get started!</div>)}
+        {perDay.length === 0 && (<div className="text-center text-gray-400 py-6">No days completed yet — get started!</div>)}
         {perDay.length > 0 && (
           <div className="space-y-3">
             {perDay.map(row => {
@@ -3809,14 +3809,14 @@ function LeaderCell({ name, data, sum, done, activities }) {
         <span className="text-xs font-display font-bold flex items-center gap-1">
           <span className="text-base">{t.emoji}</span> {name}
         </span>
-        <span className="font-display font-bold text-lg">{sum}{done && ' âœ“'}</span>
+        <span className="font-display font-bold text-lg">{sum}{done && ' ✓'}</span>
       </div>
       <div className="text-xs space-x-1 truncate opacity-80">
         {activities.map(a => {
           const v = data[a.id];
-          const display = (v === undefined || v === null) ? 'â€“'
+          const display = (v === undefined || v === null) ? '–'
                         : (typeof v === 'number' || typeof v === 'string') ? v
-                        : 'â€“'; // object or other â€” show dash, don't crash
+                        : '–'; // object or other — show dash, don't crash
           return <span key={a.id}>{a.emoji}{display}</span>;
         })}
       </div>
