@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Volume2, Check, X, Trophy, Sparkles, BookOpen, Calculator, PenTool, ArrowLeft,
   Crown, Heart, RefreshCw, Send, ChevronRight, Play, Pause, RotateCcw, Star,
-  Headphones, Medal, Globe, Beaker, Landmark, Film, Brain, Lock, Flame, TrendingUp, Settings
+  Headphones, Medal, Globe, Beaker, Landmark, Film, Brain, Lock, Flame, TrendingUp, Settings, MessageCircle
 } from 'lucide-react';
 import {
   loadProgress, saveProgress, subscribeProgress, getCachedStory, cacheStory,
@@ -18,6 +18,9 @@ import {
 import { getVerbalQuestionsForDay, getNonVerbalQuestionsForDay } from './content-reasoning.js';
 import { sfx, primeAudio } from './sounds.js';
 import LessonAnimation from './animations.jsx';
+import InkCanvas from './InkCanvas.jsx';
+import MascotChat from './MascotChat.jsx';
+import { MASCOT_PERSONAS } from './voice.js';
 
 const NAMES = ['Ava', 'Layla', 'Shyal'];
 const SISTER_NAMES = ['Ava', 'Layla'];
@@ -2009,9 +2012,14 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
 function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
   const prompt = useMemo(() => getWritingPrompt(currentDay), [currentDay]);
   const theme = THEME[user];
+  const persona = MASCOT_PERSONAS[user] || MASCOT_PERSONAS.Ava;
   const [text, setText] = useState('');
+  const [mode, setMode] = useState('type'); // 'type' or 'draw'
+  const [drawStrokeCount, setDrawStrokeCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const inkRef = useRef(null);
 
   // Save & resume
   const R = useResumable('writing', user, currentDay);
@@ -2022,7 +2030,9 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
     }
   // eslint-disable-next-line
   }, [R.phase]);
-  // Autosave the writing on every change, debounced 1s so we don't write per keystroke
+  // Autosave the writing on every change, debounced 1s so we don't write per keystroke.
+  // Note: handwritten ink is NOT autosaved (canvas content is too large for Firestore docs);
+  // kids should finish a drawing in one sitting. The typed text path is unchanged.
   useEffect(() => {
     if (R.phase !== 'ready') return;
     if (!text || text.trim().length < 3) return;
@@ -2031,14 +2041,39 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
 
-  function saveAndExit() { sfx.pop(); R.save({ text }); setScreen('home'); }
+  function saveAndExit() { sfx.pop(); if (text) R.save({ text }); setScreen('home'); }
 
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
 
+  // Submit gate differs per mode.
+  const canSubmit = mode === 'type'
+    ? (words >= 20 && !loading)
+    : (drawStrokeCount >= 10 && !loading); // need a meaningful drawing
+
   async function submit() {
     setLoading(true);
-    const fb = await aiCall('writing-feedback', { prompt, response: text, childName: user });
+    let fb = null;
+    if (mode === 'draw' && inkRef.current && !inkRef.current.isEmpty()) {
+      const base64 = inkRef.current.toPngBase64();
+      fb = await aiCall('writing-feedback-vision', { prompt, imageBase64: base64, childName: user });
+      // If vision returns a transcription, fold it into the saved record so the
+      // day-complete review still shows what they wrote.
+      const transcribed = fb && fb.transcription ? fb.transcription : '';
+      const finalFb = (fb && typeof fb.grade === 'number') ? fb : heuristicWritingFeedback(transcribed);
+      setFeedback(finalFb);
+      await saveActivity(currentDay, 'writing', finalFb.grade, {
+        prompt,
+        response: transcribed,
+        mode: 'draw',
+        feedback: finalFb
+      });
+      R.clear();
+      finalFb.grade >= 8 ? sfx.celebration() : sfx.fanfare();
+      setLoading(false);
+      return;
+    }
+    fb = await aiCall('writing-feedback', { prompt, response: text, childName: user });
     const finalFb = (fb && typeof fb.grade === 'number') ? fb : heuristicWritingFeedback(text);
     setFeedback(finalFb);
     await saveActivity(currentDay, 'writing', finalFb.grade, { prompt, response: text, feedback: finalFb });
@@ -2116,21 +2151,80 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
         <div className="uppercase tracking-widest text-xs text-emerald-600 font-semibold mb-2">Today's prompt</div>
         <div className="font-display text-2xl md:text-3xl text-gray-800 mb-5 leading-snug">"{prompt}"</div>
         <div className="text-sm text-gray-500 mb-3">Write at least <b>10 sentences</b>. Remember capital letters and full stops!</div>
-        <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Start writing here…" rows={12} disabled={loading}
-          className="w-full p-5 rounded-2xl t-input text-lg leading-relaxed resize-y" />
+
+        {/* Type / Draw toggle + Talk-to-mascot button */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div className="inline-flex bg-gray-100 rounded-2xl p-1">
+            <button
+              type="button"
+              onClick={() => { sfx.pop(); setMode('type'); }}
+              className={'px-5 py-2 rounded-xl font-display font-bold text-sm transition ' +
+                (mode === 'type' ? 'bg-white text-emerald-700 shadow' : 'text-gray-500')}
+            >
+              ⌨️ Type
+            </button>
+            <button
+              type="button"
+              onClick={() => { sfx.pop(); setMode('draw'); }}
+              className={'px-5 py-2 rounded-xl font-display font-bold text-sm transition ' +
+                (mode === 'draw' ? 'bg-white text-emerald-700 shadow' : 'text-gray-500')}
+            >
+              ✏️ Draw
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => { sfx.pop(); setChatOpen(true); }}
+            disabled={loading}
+            className="pressable px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-400 to-purple-500 text-white font-display font-bold text-sm kid-shadow flex items-center gap-2 disabled:opacity-40"
+          >
+            <MessageCircle className="w-4 h-4" /> Talk to {persona.mascotName} {persona.avatar}
+          </button>
+        </div>
+
+        {mode === 'type' ? (
+          <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Start writing here…" rows={12} disabled={loading}
+            className="w-full p-5 rounded-2xl t-input text-lg leading-relaxed resize-y" />
+        ) : (
+          <InkCanvas
+            ref={inkRef}
+            height={420}
+            onChange={(n) => setDrawStrokeCount(n)}
+          />
+        )}
+
         <div className="flex flex-wrap items-center justify-between mt-4 gap-4">
           <div className="text-sm text-gray-600 font-semibold">
-            <span className="mr-3">📝 {words} words</span>
-            <span className="mr-3">📏 {sentences} sentences</span>
-            {sentences >= 10 && <span className="text-emerald-600">✓ ready</span>}
+            {mode === 'type' ? (
+              <>
+                <span className="mr-3">📝 {words} words</span>
+                <span className="mr-3">📏 {sentences} sentences</span>
+                {sentences >= 10 && <span className="text-emerald-600">✓ ready</span>}
+              </>
+            ) : (
+              <>
+                <span className="mr-3">✏️ {drawStrokeCount} strokes</span>
+                {drawStrokeCount >= 10 && <span className="text-emerald-600">✓ ready</span>}
+              </>
+            )}
           </div>
-          <button onClick={submit} disabled={words < 20 || loading}
+          <button onClick={submit} disabled={!canSubmit}
             className="pressable px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-green-600 text-white font-display font-bold text-lg kid-shadow disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
             {loading ? <><RefreshCw className="w-5 h-5 animate-spin" /> Getting feedback…</> : <><Send className="w-5 h-5" /> Send for feedback</>}
           </button>
         </div>
-        {words < 20 && !loading && (<div className="text-xs text-gray-400 mt-2 text-right">Write a bit more first (at least 20 words)</div>)}
+        {mode === 'type' && words < 20 && !loading && (<div className="text-xs text-gray-400 mt-2 text-right">Write a bit more first (at least 20 words)</div>)}
+        {mode === 'draw' && drawStrokeCount < 10 && !loading && (<div className="text-xs text-gray-400 mt-2 text-right">Keep drawing a bit more first</div>)}
       </div>
+
+      {chatOpen && (
+        <MascotChat
+          user={user}
+          writingPrompt={prompt}
+          currentDraft={text}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
     </ActivityShell>
   );
 }
