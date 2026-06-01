@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'Missing text' });
 
   // Hard cap so a runaway prompt can't burn the character quota.
-  const safeText = text.slice(0, 800);
+  const safeText = text.slice(0, 4000);
 
   const cfg = MASCOT_VOICES[mascot] || MASCOT_VOICES.Ava;
 
