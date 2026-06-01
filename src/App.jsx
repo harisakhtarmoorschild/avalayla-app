@@ -304,7 +304,82 @@ if (typeof window !== 'undefined' && window.speechSynthesis) {
   }, 0);
 }
 
+// ============================================================
+// Active mascot for spoken narration. When set, speak() / speakWord()
+// route through the Cartesia /api/tts proxy and use the kid's mascot
+// voice. When null (or Cartesia call fails), they fall back to the
+// browser's robotic speechSynthesis.
+//
+// chooseUser() sets this; switchUser() clears it.
+// ============================================================
+let activeMascotKey = null;
+function setActiveMascotForSpeech(kid) { activeMascotKey = kid || null; }
+
+// Reuse a single <audio> element across all mascot speech. iPad Safari ties
+// the autoplay gesture to the first element played on a page; if we keep
+// making new Audio() in async callbacks the gesture lineage is lost and later
+// audio is silently blocked (this was the "voice cuts in and out" bug).
+let currentMascotAudio = null;
+let lastSpeechBlobUrl = null;
+function getSpeechAudio() {
+  if (!currentMascotAudio) {
+    currentMascotAudio = new Audio();
+    currentMascotAudio.preload = 'auto';
+  }
+  return currentMascotAudio;
+}
+
+async function speakViaCartesia(text, opts = {}) {
+  if (!activeMascotKey) return false;
+  try {
+    const r = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, mascot: activeMascotKey })
+    });
+    if (!r.ok) return false;
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    // Stop anything currently playing before starting the new clip.
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    try { getSpeechAudio().pause(); } catch (e) {}
+    if (lastSpeechBlobUrl) { try { URL.revokeObjectURL(lastSpeechBlobUrl); } catch (e) {} }
+    lastSpeechBlobUrl = url;
+    const audio = getSpeechAudio();
+    // Speed is controlled by Cartesia's voice config (see api/tts.js). Don't
+    // multiply with playbackRate here — that was causing inconsistent pace
+    // across spelling/vocab/reading screens.
+    audio.onended = () => {
+      if (lastSpeechBlobUrl === url) { try { URL.revokeObjectURL(url); } catch (e) {} lastSpeechBlobUrl = null; }
+      opts.onend && opts.onend();
+    };
+    audio.onerror = () => {
+      if (lastSpeechBlobUrl === url) { try { URL.revokeObjectURL(url); } catch (e) {} lastSpeechBlobUrl = null; }
+      opts.onerror && opts.onerror();
+    };
+    audio.src = url;
+    opts.onstart && opts.onstart();
+    await audio.play();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function speak(text, opts = {}) {
+  // Try Cartesia first; if it succeeds, no further work is needed.
+  // We can't await here because most callers are synchronous, so we
+  // kick it off and silently fall through to browser TTS on failure.
+  if (activeMascotKey) {
+    speakViaCartesia(text, opts).then(ok => {
+      if (!ok) speakBrowser(text, opts);
+    });
+    return null;
+  }
+  return speakBrowser(text, opts);
+}
+
+function speakBrowser(text, opts = {}) {
   try {
     if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(text);
@@ -328,6 +403,47 @@ function speak(text, opts = {}) {
 // Two passes: the word → small pause → the word again, so kids have time to hear it.
 function speakWord(word) {
   if (!word) return;
+  // Cartesia path: synthesize once, play twice with a pause. (Two requests would
+  // double the character cost; this caches the same blob and replays it.)
+  if (activeMascotKey) {
+    (async () => {
+      try {
+        const r = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: word, mascot: activeMascotKey })
+        });
+        if (!r.ok) throw new Error('tts ' + r.status);
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+        if (currentMascotAudio) { try { currentMascotAudio.pause(); } catch (e) {} }
+        const playOnce = () => {
+          const audio = new Audio(url);
+          audio.playbackRate = 0.92; // slightly slower for spelling clarity
+          currentMascotAudio = audio;
+          audio.play().catch(() => {});
+          return audio;
+        };
+        const a1 = playOnce();
+        a1.onended = () => {
+          setTimeout(() => {
+            const a2 = playOnce();
+            a2.onended = () => { URL.revokeObjectURL(url); if (currentMascotAudio === a2) currentMascotAudio = null; };
+            a2.onerror = () => { URL.revokeObjectURL(url); };
+          }, 700);
+        };
+        a1.onerror = () => { URL.revokeObjectURL(url); speakWordBrowser(word); };
+      } catch (e) {
+        speakWordBrowser(word);
+      }
+    })();
+    return;
+  }
+  speakWordBrowser(word);
+}
+
+function speakWordBrowser(word) {
   try {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -348,7 +464,16 @@ function speakWord(word) {
     mkUtterance(word, 1400);
   } catch (e) {}
 }
-function stopSpeaking() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+
+function stopSpeaking() {
+  try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+  if (currentMascotAudio) {
+    try { currentMascotAudio.pause(); } catch (e) {}
+    // Keep the element instance — only clear its src so the next play() reuses it.
+    try { currentMascotAudio.removeAttribute('src'); currentMascotAudio.load(); } catch (e) {}
+  }
+  if (lastSpeechBlobUrl) { try { URL.revokeObjectURL(lastSpeechBlobUrl); } catch (e) {} lastSpeechBlobUrl = null; }
+}
 
 /* --------- API helpers --------- */
 async function aiCall(task, payload) {
@@ -614,9 +739,12 @@ export default function App() {
   function chooseUser(name) {
     primeAudio(); sfx.pop();
     setUser(name); setLocalUser(name);
+    // Route all subsequent narration through this kid's mascot voice (Cartesia).
+    setActiveMascotForSpeech(name);
   }
   function switchUser() {
     setUser(null); setScreen('home'); setLocalUser(null); stopSpeaking();
+    setActiveMascotForSpeech(null);
   }
 
   async function saveActivity(day, activity, score, meta = {}) {
@@ -2147,84 +2275,90 @@ function WritingActivity({ user, currentDay, saveActivity, setScreen }) {
   return (
     <ActivityShell user={user} title="Writing" emoji="✏️" color="from-emerald-400 to-green-600"
       onBack={() => setScreen('home')} onSaveExit={saveAndExit}>
-      <div className="bg-white kid-shadow rounded-[2rem] p-8 pop-in">
-        <div className="uppercase tracking-widest text-xs text-emerald-600 font-semibold mb-2">Today's prompt</div>
-        <div className="font-display text-2xl md:text-3xl text-gray-800 mb-5 leading-snug">"{prompt}"</div>
-        <div className="text-sm text-gray-500 mb-3">Write at least <b>10 sentences</b>. Remember capital letters and full stops!</div>
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
+        <div className="flex-1 min-w-0 w-full bg-white kid-shadow rounded-[2rem] p-6 md:p-8 pop-in">
+          <div className="uppercase tracking-widest text-xs text-emerald-600 font-semibold mb-2">Today's prompt</div>
+          <div className="font-display text-xl md:text-2xl text-gray-800 mb-4 leading-snug">"{prompt}"</div>
+          <div className="text-sm text-gray-500 mb-3">Write at least <b>10 sentences</b>. Remember capital letters and full stops!</div>
 
-        {/* Type / Draw toggle + Talk-to-mascot button */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <div className="inline-flex bg-gray-100 rounded-2xl p-1">
+          {/* Type / Draw toggle + Show/Hide chat */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div className="inline-flex bg-gray-100 rounded-2xl p-1">
+              <button
+                type="button"
+                onClick={() => { sfx.pop(); setMode('type'); }}
+                className={'px-5 py-2 rounded-xl font-display font-bold text-sm transition ' +
+                  (mode === 'type' ? 'bg-white text-emerald-700 shadow' : 'text-gray-500')}
+              >
+                ⌨️ Type
+              </button>
+              <button
+                type="button"
+                onClick={() => { sfx.pop(); setMode('draw'); }}
+                className={'px-5 py-2 rounded-xl font-display font-bold text-sm transition ' +
+                  (mode === 'draw' ? 'bg-white text-emerald-700 shadow' : 'text-gray-500')}
+              >
+                ✏️ Draw
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => { sfx.pop(); setMode('type'); }}
-              className={'px-5 py-2 rounded-xl font-display font-bold text-sm transition ' +
-                (mode === 'type' ? 'bg-white text-emerald-700 shadow' : 'text-gray-500')}
+              onClick={() => { sfx.pop(); setChatOpen(o => !o); }}
+              disabled={loading}
+              className={'pressable px-4 py-2.5 rounded-2xl text-white font-display font-bold text-sm kid-shadow flex items-center gap-2 disabled:opacity-40 ' +
+                (chatOpen ? 'bg-gradient-to-r from-gray-400 to-gray-500' : 'bg-gradient-to-r from-violet-400 to-purple-500')}
             >
-              ⌨️ Type
-            </button>
-            <button
-              type="button"
-              onClick={() => { sfx.pop(); setMode('draw'); }}
-              className={'px-5 py-2 rounded-xl font-display font-bold text-sm transition ' +
-                (mode === 'draw' ? 'bg-white text-emerald-700 shadow' : 'text-gray-500')}
-            >
-              ✏️ Draw
+              <MessageCircle className="w-4 h-4" />
+              {chatOpen ? 'Hide chat' : `Talk to ${persona.mascotName} ${persona.avatar}`}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => { sfx.pop(); setChatOpen(true); }}
-            disabled={loading}
-            className="pressable px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-400 to-purple-500 text-white font-display font-bold text-sm kid-shadow flex items-center gap-2 disabled:opacity-40"
-          >
-            <MessageCircle className="w-4 h-4" /> Talk to {persona.mascotName} {persona.avatar}
-          </button>
+
+          {mode === 'type' ? (
+            <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Start writing here…" rows={12} disabled={loading}
+              className="w-full p-5 rounded-2xl t-input text-lg leading-relaxed resize-y" />
+          ) : (
+            <InkCanvas
+              ref={inkRef}
+              height={420}
+              onChange={(n) => setDrawStrokeCount(n)}
+            />
+          )}
+
+          <div className="flex flex-wrap items-center justify-between mt-4 gap-4">
+            <div className="text-sm text-gray-600 font-semibold">
+              {mode === 'type' ? (
+                <>
+                  <span className="mr-3">📝 {words} words</span>
+                  <span className="mr-3">📏 {sentences} sentences</span>
+                  {sentences >= 10 && <span className="text-emerald-600">✓ ready</span>}
+                </>
+              ) : (
+                <>
+                  <span className="mr-3">✏️ {drawStrokeCount} strokes</span>
+                  {drawStrokeCount >= 10 && <span className="text-emerald-600">✓ ready</span>}
+                </>
+              )}
+            </div>
+            <button onClick={submit} disabled={!canSubmit}
+              className="pressable px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-green-600 text-white font-display font-bold text-lg kid-shadow disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+              {loading ? <><RefreshCw className="w-5 h-5 animate-spin" /> Getting feedback…</> : <><Send className="w-5 h-5" /> Send for feedback</>}
+            </button>
+          </div>
+          {mode === 'type' && words < 20 && !loading && (<div className="text-xs text-gray-400 mt-2 text-right">Write a bit more first (at least 20 words)</div>)}
+          {mode === 'draw' && drawStrokeCount < 10 && !loading && (<div className="text-xs text-gray-400 mt-2 text-right">Keep drawing a bit more first</div>)}
         </div>
 
-        {mode === 'type' ? (
-          <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Start writing here…" rows={12} disabled={loading}
-            className="w-full p-5 rounded-2xl t-input text-lg leading-relaxed resize-y" />
-        ) : (
-          <InkCanvas
-            ref={inkRef}
-            height={420}
-            onChange={(n) => setDrawStrokeCount(n)}
-          />
+        {chatOpen && (
+          <aside className="w-full lg:w-[360px] flex-shrink-0 lg:sticky lg:top-4 h-[520px] lg:h-[680px] lg:max-h-[calc(100vh-120px)]">
+            <MascotChat
+              user={user}
+              writingPrompt={prompt}
+              currentDraft={text}
+              onClose={() => setChatOpen(false)}
+            />
+          </aside>
         )}
-
-        <div className="flex flex-wrap items-center justify-between mt-4 gap-4">
-          <div className="text-sm text-gray-600 font-semibold">
-            {mode === 'type' ? (
-              <>
-                <span className="mr-3">📝 {words} words</span>
-                <span className="mr-3">📏 {sentences} sentences</span>
-                {sentences >= 10 && <span className="text-emerald-600">✓ ready</span>}
-              </>
-            ) : (
-              <>
-                <span className="mr-3">✏️ {drawStrokeCount} strokes</span>
-                {drawStrokeCount >= 10 && <span className="text-emerald-600">✓ ready</span>}
-              </>
-            )}
-          </div>
-          <button onClick={submit} disabled={!canSubmit}
-            className="pressable px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-green-600 text-white font-display font-bold text-lg kid-shadow disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
-            {loading ? <><RefreshCw className="w-5 h-5 animate-spin" /> Getting feedback…</> : <><Send className="w-5 h-5" /> Send for feedback</>}
-          </button>
-        </div>
-        {mode === 'type' && words < 20 && !loading && (<div className="text-xs text-gray-400 mt-2 text-right">Write a bit more first (at least 20 words)</div>)}
-        {mode === 'draw' && drawStrokeCount < 10 && !loading && (<div className="text-xs text-gray-400 mt-2 text-right">Keep drawing a bit more first</div>)}
       </div>
-
-      {chatOpen && (
-        <MascotChat
-          user={user}
-          writingPrompt={prompt}
-          currentDraft={text}
-          onClose={() => setChatOpen(false)}
-        />
-      )}
     </ActivityShell>
   );
 }
@@ -2608,11 +2742,18 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   }
   function pauseReading() {
     try { window.speechSynthesis.pause(); } catch (e) {}
+    if (currentMascotAudio) { try { currentMascotAudio.pause(); } catch (e) {} }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     setPlaying(false);
   }
   function resumeReading() {
-    try { window.speechSynthesis.resume(); setPlaying(true); } catch (e) { startReading(); }
+    let resumed = false;
+    if (currentMascotAudio) {
+      try { currentMascotAudio.play(); setPlaying(true); resumed = true; } catch (e) {}
+    }
+    if (!resumed) {
+      try { window.speechSynthesis.resume(); setPlaying(true); } catch (e) { startReading(); }
+    }
   }
   function restart() { stopSpeaking(); if (timerRef.current) clearInterval(timerRef.current); setCurrentWordIdx(-1); setPlaying(false); }
 
