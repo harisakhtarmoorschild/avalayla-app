@@ -1,7 +1,7 @@
 // ============================================================
-// Voice helpers — Web Speech API for STT, speechSynthesis for TTS.
-// Both are browser-native, free, and work on iPad Safari 14.5+.
-// If STT is unsupported (older browsers), the chat UI falls back to typed input.
+// Voice helpers — Web Speech API for STT, Cartesia + speechSynthesis for TTS.
+// Both STT and the TTS fallback are browser-native and work on iPad Safari 14.5+.
+// Neural TTS goes through /api/tts (Cartesia Sonic 3).
 // ============================================================
 
 const RecognitionCtor = typeof window !== 'undefined'
@@ -12,8 +12,6 @@ export const isSttSupported = () => Boolean(RecognitionCtor);
 export const isTtsSupported = () =>
   typeof window !== 'undefined' && Boolean(window.speechSynthesis);
 
-// Some browsers (Safari especially) need a tick before getVoices() returns the list.
-// We prime it once on first use.
 let cachedVoices = null;
 function ensureVoicesLoaded() {
   if (!isTtsSupported()) return [];
@@ -45,7 +43,26 @@ function pickVoice(hint = {}) {
   return (byGender[0] || pool.find(v => v.lang === lang) || pool[0]) || null;
 }
 
-export function createListener({ onResult, onError, onEnd, lang = 'en-GB' } = {}) {
+// ============================================================
+// createListener — wraps Web Speech API SpeechRecognition.
+//
+// Modes:
+//   - Default (continuous: false): legacy single-shot mode. Old call sites
+//     pass {onResult}; we adapt by calling onFinalFragment + onEnd.
+//   - continuous: true: emits onInterim (live transcript) and onFinalFragment
+//     (final chunks). Caller decides when to stop() the listener. Used by
+//     the walkie-talkie mic in MascotChat.
+// ============================================================
+export function createListener({
+  onResult,           // legacy: fires once with final transcript
+  onInterim,          // new: live partial transcript while speaking
+  onFinalFragment,    // new: a finalised chunk (browsers may emit several)
+  onError,
+  onEnd,
+  lang = 'en-GB',
+  continuous = false,
+  interimResults = false
+} = {}) {
   if (!RecognitionCtor) {
     return {
       start() { onError && onError(new Error('Speech recognition not supported')); },
@@ -54,12 +71,31 @@ export function createListener({ onResult, onError, onEnd, lang = 'en-GB' } = {}
   }
   const rec = new RecognitionCtor();
   rec.lang = lang;
-  rec.continuous = false;
-  rec.interimResults = false;
+  rec.continuous = !!continuous;
+  rec.interimResults = !!interimResults;
   rec.maxAlternatives = 1;
+
+  let lastFinalEmitted = '';
+
   rec.onresult = (e) => {
-    const r0 = e.results && e.results[0];
-    if (r0 && r0[0]) onResult && onResult((r0[0].transcript || '').trim());
+    // Walk every result. Per spec, results have .isFinal flagging finalised
+    // segments; interim segments may be appended on each event.
+    let interimText = '';
+    let finalText = '';
+    for (let i = 0; i < e.results.length; i++) {
+      const r = e.results[i];
+      const t = (r[0] && r[0].transcript || '').trim();
+      if (!t) continue;
+      if (r.isFinal) finalText = (finalText + ' ' + t).trim();
+      else interimText = (interimText + ' ' + t).trim();
+    }
+    if (interimText && onInterim) onInterim(interimText);
+    if (finalText && finalText !== lastFinalEmitted) {
+      lastFinalEmitted = finalText;
+      if (onFinalFragment) onFinalFragment(finalText);
+      // Legacy single-shot callers expect onResult with the final transcript.
+      if (!continuous && onResult) onResult(finalText);
+    }
   };
   rec.onerror = (e) => onError && onError(e.error || e);
   rec.onend = () => onEnd && onEnd();
@@ -139,23 +175,41 @@ Never use markdown, asterisks, headings, or bullet points — only plain spoken 
 
 
 // ============================================================
-// speakAsMascot — try the neural Cartesia voice first (via the
-// server proxy), fall back to the robotic browser voice if the
-// server isn't configured or the request fails.
-// Returns a cancel() function for the caller to stop playback.
+// Singleton <audio> element. iPad Safari's autoplay policy ties the
+// "user gesture" to the FIRST audio element played on a page. If we
+// keep making `new Audio()` for each mascot reply, the gesture lineage
+// is lost and later audio is blocked — that's the "voice can be heard
+// and then not heard at all" pattern.
+//
+// Solution: reuse ONE audio element. Set .src to a fresh blob URL on each
+// call. The element keeps its user-gesture credential as long as the
+// initial play() came from a tap.
 // ============================================================
-let currentAudio = null;
+let sharedAudio = null;
+function getSharedAudio() {
+  if (typeof window === 'undefined') return null;
+  if (!sharedAudio) {
+    sharedAudio = new Audio();
+    sharedAudio.preload = 'auto';
+  }
+  return sharedAudio;
+}
+
+let lastBlobUrl = null;
 
 export function stopMascotAudio() {
-  if (currentAudio) {
-    try { currentAudio.pause(); currentAudio.src = ''; } catch (e) {}
-    currentAudio = null;
+  if (sharedAudio) {
+    try { sharedAudio.pause(); } catch (e) {}
   }
+  if (lastBlobUrl) { try { URL.revokeObjectURL(lastBlobUrl); } catch (e) {} lastBlobUrl = null; }
   cancelSpeech();
 }
 
+// speakAsMascot — try Cartesia first (via /api/tts proxy), fall back to
+// browser speechSynthesis if the server isn't configured or the request fails.
+// Returns nothing; caller passes onEnd for completion.
 export async function speakAsMascot(text, mascotKey, onEnd) {
-  if (!text) { onEnd && setTimeout(onEnd, 0); return () => {}; }
+  if (!text) { onEnd && setTimeout(onEnd, 0); return; }
   stopMascotAudio();
   const persona = MASCOT_PERSONAS[mascotKey] || MASCOT_PERSONAS.Ava;
   try {
@@ -167,22 +221,26 @@ export async function speakAsMascot(text, mascotKey, onEnd) {
     if (!r.ok) throw new Error('tts ' + r.status);
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    currentAudio = audio;
-    const cleanup = () => {
-      URL.revokeObjectURL(url);
-      if (currentAudio === audio) currentAudio = null;
+    lastBlobUrl = url;
+    const audio = getSharedAudio();
+    if (!audio) throw new Error('no audio element');
+    audio.onended = () => {
+      if (lastBlobUrl === url) { try { URL.revokeObjectURL(url); } catch (e) {} lastBlobUrl = null; }
+      onEnd && onEnd();
     };
-    audio.onended = () => { cleanup(); onEnd && onEnd(); };
     audio.onerror = () => {
-      cleanup();
-      // Cartesia not configured or network failure — fall back to browser TTS.
+      if (lastBlobUrl === url) { try { URL.revokeObjectURL(url); } catch (e) {} lastBlobUrl = null; }
+      // Fall back to browser TTS so the kid still hears something.
       speak(text, persona.voiceHint, onEnd);
     };
-    await audio.play();
-    return () => { try { audio.pause(); } catch (e) {} cleanup(); };
+    audio.src = url;
+    try {
+      await audio.play();
+    } catch (e) {
+      // Autoplay policy may still reject if no gesture in this task. Fall back.
+      speak(text, persona.voiceHint, onEnd);
+    }
   } catch (e) {
-    // Cartesia not configured or network failure — fall back.
-    return speak(text, persona.voiceHint, onEnd);
+    speak(text, persona.voiceHint, onEnd);
   }
 }
