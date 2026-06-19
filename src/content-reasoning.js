@@ -147,9 +147,12 @@ export const VERBAL_BANK = [
   { type:'hidden', tier:4, question:'Which small word is hidden inside CHAMPION?', options:['champ','ham','pion','amp'], correct:1, explain:'CHAMPION contains H-A-M: "ham".' }
 ];
 
+// Baseline difficulty bump — raises every day one tier harder than the day alone implies.
+const DIFFICULTY_BUMP = 1;
+
 export function getVerbalQuestionsForDay(day, tierOffset = 0, count = 5) {
   const baseTier = tierFromDay(day);
-  const effectiveTier = clamp(baseTier + tierOffset, 1, 4);
+  const effectiveTier = clamp(baseTier + DIFFICULTY_BUMP + tierOffset, 1, 4);
   // Take from the target tier first, fall back to neighbours
   const pool = VERBAL_BANK.filter(q => q.tier === effectiveTier);
   const fallback = VERBAL_BANK.filter(q => q.tier === effectiveTier - 1 || q.tier === effectiveTier + 1);
@@ -167,9 +170,12 @@ export function getVerbalQuestionsForDay(day, tierOffset = 0, count = 5) {
 const SHAPES = ['circle','square','triangle','pentagon','hexagon','star'];
 const COLORS = ['#f472b6','#60a5fa','#fbbf24','#34d399','#a78bfa','#fb923c'];
 
-function svgShape(shape, color = '#60a5fa', size = 48, rotation = 0, fill = true, dot = null) {
+function svgShape(shape, color = '#60a5fa', size = 48, rotation = 0, fill = true, dot = null, mark = false) {
   // Returns inline SVG markup for one shape inside a 100x100 box.
-  // dot: null | 'center' | 'topleft' | 'topright' etc
+  // dot:  null | 'center' | 'topleft' | 'topright' etc — a fixed positional dot (analogy puzzles)
+  // mark: when true, adds an orientation marker that rotates WITH the shape, so the
+  //       orientation is always visible even for symmetric shapes (circle, square…).
+  //       This prevents "every option looks identical" in rotation puzzles.
   const s = size;
   const cx = 50, cy = 50;
   const fillAttr = fill ? color : 'none';
@@ -201,7 +207,8 @@ function svgShape(shape, color = '#60a5fa', size = 48, rotation = 0, fill = true
     }
     shapeEl = `<polygon points="${pts.join(' ')}" fill="${fillAttr}" stroke="${strokeAttr}" stroke-width="3" />`;
   }
-  const rotated = `<g transform="rotate(${rotation} ${cx} ${cy})">${shapeEl}</g>`;
+  const markEl = mark ? `<circle cx="${cx}" cy="${cy - s/2 + 7}" r="5" fill="#111827" stroke="#ffffff" stroke-width="1.5" />` : '';
+  const rotated = `<g transform="rotate(${rotation} ${cx} ${cy})">${shapeEl}${markEl}</g>`;
   const dotMarkup = dot ? svgDot(dot) : '';
   return `<svg viewBox="0 0 100 100" width="80" height="80">${rotated}${dotMarkup}</svg>`;
 }
@@ -217,17 +224,28 @@ function svgDot(pos) {
 // -- Generator: next shape in a sequence of rotations --
 function genRotationSequence(seed, tier) {
   const rng = mulberry32Inner(seed);
-  const shape = pick(rng, SHAPES.slice(0, 4)); // pick easier shapes at low tiers
+  // Any shape is fine now — the orientation marker makes every rotation distinct,
+  // so a symmetric shape (circle/square) can never render as four identical options.
+  const shape = pick(rng, SHAPES);
   const color = pick(rng, COLORS);
-  const step = (tier <= 2) ? 45 : 30;
-  const start = Math.floor(rng() * 8) * step;
-  // Build 3 shown rotations, 4th is the answer
+  // Smaller steps at higher tiers are harder to extrapolate.
+  const step = tier >= 4 ? 30 : tier === 3 ? 45 : 60;
+  const start = Math.floor(rng() * (360 / step)) * step;
+  // Build 3 shown rotations, 4th is the answer — marker drawn so rotation is visible.
   const rotations = [start, start + step, start + 2*step, start + 3*step];
-  const shownSvgs = rotations.slice(0, 3).map(r => svgShape(shape, color, 50, r));
+  const draw = r => svgShape(shape, color, 50, r, true, null, true);
+  const shownSvgs = rotations.slice(0, 3).map(draw);
   const answerRotation = rotations[3];
-  // Make 3 distractors: wrong rotations
-  const wrongs = [answerRotation + step, answerRotation - step, answerRotation + step * 2];
-  const options = [svgShape(shape, color, 50, answerRotation), ...wrongs.map(r => svgShape(shape, color, 50, r))];
+  // Distractors: nearby wrong rotations, guaranteed distinct from the answer AND each
+  // other (compared modulo 360 so two angles can never look the same).
+  const norm = a => ((a % 360) + 360) % 360;
+  const used = new Set([norm(answerRotation)]);
+  const wrongs = [];
+  for (const w of [answerRotation + step, answerRotation - step, answerRotation + 2*step, answerRotation - 2*step, answerRotation + 3*step]) {
+    if (wrongs.length >= 3) break;
+    if (!used.has(norm(w))) { used.add(norm(w)); wrongs.push(w); }
+  }
+  const options = [draw(answerRotation), ...wrongs.map(draw)];
   const order = shuffleSeeded([0,1,2,3], seed + 99);
   const shuffled = order.map(i => options[i]);
   const correct = order.indexOf(0);
@@ -237,7 +255,7 @@ function genRotationSequence(seed, tier) {
     showSequence: shownSvgs,
     options: shuffled,
     correct,
-    explain: `The shape rotates by ${step}° each step. The next rotation continues the pattern.`
+    explain: `The shape turns by ${step}° each step — follow the marker dot. The next turn continues the pattern.`
   };
 }
 
@@ -246,10 +264,20 @@ function genOddShapeOut(seed, tier) {
   const rng = mulberry32Inner(seed);
   const shape = pick(rng, SHAPES);
   const color = pick(rng, COLORS);
-  const oddShape = pick(rng, SHAPES.filter(s => s !== shape));
-  // 3 of same shape with tiny differences (rotation only), 1 different shape
-  const normals = [svgShape(shape, color, 50, 0), svgShape(shape, color, 50, 30), svgShape(shape, color, 50, 60)];
-  const odd = svgShape(oddShape, color, 50, 0);
+  let normals, odd, explain;
+  if (tier >= 3) {
+    // Harder: same shape three times, the odd one differs only by COLOUR.
+    const oddColor = pick(rng, COLORS.filter(c => c !== color));
+    normals = [svgShape(shape, color, 50, 0), svgShape(shape, color, 50, 40), svgShape(shape, color, 50, 80)];
+    odd = svgShape(shape, oddColor, 50, 20);
+    explain = `Three shapes are the same colour — the odd one out is a different colour.`;
+  } else {
+    // Gentle: the odd one is a completely different shape.
+    const oddShape = pick(rng, SHAPES.filter(s => s !== shape));
+    normals = [svgShape(shape, color, 50, 0), svgShape(shape, color, 50, 30), svgShape(shape, color, 50, 60)];
+    odd = svgShape(oddShape, color, 50, 0);
+    explain = `Three of the shapes are ${shape}s. The odd one is a ${oddShape}.`;
+  }
   const all = [...normals, odd];
   const order = shuffleSeeded([0,1,2,3], seed + 7);
   const shuffled = order.map(i => all[i]);
@@ -259,7 +287,7 @@ function genOddShapeOut(seed, tier) {
     question: 'Which shape is the odd one out?',
     options: shuffled,
     correct,
-    explain: `Three of the shapes are ${shape}s. The odd one is a ${oddShape}.`
+    explain
   };
 }
 
@@ -293,16 +321,16 @@ function genShapeDotAnalogy(seed, tier) {
 // -- Generator: which is the same as first? (rotation equivalence) --
 function genRotationMatch(seed, tier) {
   const rng = mulberry32Inner(seed);
-  const shape = pick(rng, ['triangle', 'pentagon', 'star']); // asymmetric enough
+  const shape = pick(rng, ['triangle', 'pentagon', 'hexagon', 'star']);
   const color = pick(rng, COLORS);
   const baseRotation = Math.floor(rng() * 12) * 30;
-  const target = svgShape(shape, color, 55, baseRotation);
-  // Correct: another rotation of same shape
-  const correctRot = baseRotation + 120;
-  const correctSvg = svgShape(shape, color, 55, correctRot);
-  // Distractors: different shapes same color, or mirrored
+  const target = svgShape(shape, color, 55, baseRotation, true, null, true);
+  // Correct: the same shape, clearly turned (marker shows the rotation).
+  const correctRot = baseRotation + (tier >= 3 ? 75 : 120);
+  const correctSvg = svgShape(shape, color, 55, correctRot, true, null, true);
+  // Distractors: different shapes (also marked), so only the outline tells them apart.
   const wrongShapes = SHAPES.filter(s => s !== shape).slice(0, 3);
-  const wrongs = wrongShapes.map(s => svgShape(s, color, 55, baseRotation));
+  const wrongs = wrongShapes.map(s => svgShape(s, color, 55, baseRotation, true, null, true));
   const all = [correctSvg, ...wrongs];
   const order = shuffleSeeded([0,1,2,3], seed + 17);
   const shuffled = order.map(i => all[i]);
@@ -364,7 +392,7 @@ const NON_VERBAL_GENERATORS = [genRotationSequence, genOddShapeOut, genShapeDotA
 
 export function getNonVerbalQuestionsForDay(day, tierOffset = 0, count = 5) {
   const baseTier = tierFromDay(day);
-  const effectiveTier = clamp(baseTier + tierOffset, 1, 4);
+  const effectiveTier = clamp(baseTier + DIFFICULTY_BUMP + tierOffset, 1, 4);
   const questions = [];
   for (let i = 0; i < count; i++) {
     // Seed varies by day, question index, and tier so content is stable per-day but different per-question
