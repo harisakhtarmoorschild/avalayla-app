@@ -22,7 +22,7 @@ import InkCanvas from './InkCanvas.jsx';
 import MascotChat from './MascotChat.jsx';
 import { MASCOT_PERSONAS } from './voice.js';
 
-const NAMES = ['Ava', 'Layla', 'Shyal'];
+const NAMES = ['Ava', 'Layla', 'Shyal', 'Felicity'];
 const SISTER_NAMES = ['Ava', 'Layla'];
 
 /* ============================================================
@@ -91,6 +91,27 @@ const THEME = {
     wrongLine: ['Re-launch!', 'Steady the bey!', 'Spin again!', 'Reset the stadium!'],
     decorBg: ['⚔️','🐉','🌀','⚡'],
     tokens: { '--theme-border': '#fca5a5', '--theme-border-strong': '#dc2626', '--theme-input-bg': '#fef2f2' }
+  },
+  Felicity: {
+    name: 'Felicity',
+    emoji: '🐕',
+    mascotEmoji: '🐕',
+    worldName: 'Alpine Paw Meadow',
+    tagline: 'Bound up the mountain, sweet pup!',
+    bgClass: 'felicity-bg',
+    cardClass: 'felicity-card',
+    gradient: 'felicity-gradient',
+    gradientSoft: 'felicity-gradient-soft',
+    text: 'felicity-text',
+    accent: 'felicity-accent',
+    pill: 'felicity-pill',
+    pattern: 'felicity-pattern',
+    font: 'font-script',
+    decor: ['🐕', '🐾', '🦴', '🏔️', '🌲', '💗'],
+    correctLine: ['Pawfect!', 'Good girl!', 'Top of the mountain!', 'Tail-waggingly great!', 'Alpine champion!'],
+    wrongLine: ['Almost there, pup!', 'Keep climbing!', 'Try again!', 'You\'ve got this!'],
+    decorBg: ['🐕','🐾','🏔️','🌲'],
+    tokens: { '--theme-border': '#e9c46a', '--theme-border-strong': '#92400e', '--theme-input-bg': '#fffbeb' }
   }
 };
 
@@ -679,10 +700,82 @@ function ShyalMascot({ mood = 'idle', size = 120 }) {
   );
 }
 
+function FelicityMascot({ mood = 'idle', size = 120 }) {
+  const bounce = mood === 'happy' ? 'bounce-in' : '';
+  const sway = mood === 'idle' ? 'floaty' : '';
+  // Bernese mountain dog — tricolour: jet black, rust/tan markings, white blaze & chest
+  const BLACK = '#1c1917';
+  const RUST = '#b45309';
+  const WHITE = '#fafaf9';
+  return (
+    <svg viewBox="0 0 140 130" width={size} height={size * 130 / 140} className={bounce}>
+      {/* Alpine ground shadow */}
+      <ellipse cx="70" cy="120" rx="46" ry="6" fill="#1f2937" opacity="0.2" />
+      <g className={sway} style={{transformOrigin:'70px 70px'}}>
+        {/* Sitting body (black) */}
+        <ellipse cx="70" cy="96" rx="33" ry="27" fill={BLACK} />
+        {/* White chest blaze */}
+        <path d="M70 74 Q60 96 70 116 Q80 96 70 74 Z" fill={WHITE} />
+        {/* Front legs with white paws + rust above */}
+        <rect x="54" y="100" width="11" height="20" rx="5" fill={BLACK} />
+        <rect x="75" y="100" width="11" height="20" rx="5" fill={BLACK} />
+        <rect x="54" y="106" width="11" height="6" fill={RUST} opacity="0.85" />
+        <rect x="75" y="106" width="11" height="6" fill={RUST} opacity="0.85" />
+        <ellipse cx="59.5" cy="120" rx="7" ry="4" fill={WHITE} />
+        <ellipse cx="80.5" cy="120" rx="7" ry="4" fill={WHITE} />
+        {/* Floppy ears */}
+        <ellipse cx="42" cy="52" rx="11" ry="19" fill={BLACK} transform="rotate(-14 42 52)" />
+        <ellipse cx="98" cy="52" rx="11" ry="19" fill={BLACK} transform="rotate(14 98 52)" />
+        {/* Head (black) */}
+        <ellipse cx="70" cy="50" rx="30" ry="27" fill={BLACK} />
+        {/* Rust eyebrow dots */}
+        <ellipse cx="59" cy="42" rx="5" ry="4" fill={RUST} />
+        <ellipse cx="81" cy="42" rx="5" ry="4" fill={RUST} />
+        {/* Rust cheek markings */}
+        <ellipse cx="50" cy="60" rx="8" ry="9" fill={RUST} opacity="0.9" />
+        <ellipse cx="90" cy="60" rx="8" ry="9" fill={RUST} opacity="0.9" />
+        {/* White blaze down the face */}
+        <path d="M70 26 Q63 46 65 64 L75 64 Q77 46 70 26 Z" fill={WHITE} />
+        {/* White muzzle */}
+        <ellipse cx="70" cy="62" rx="17" ry="13" fill={WHITE} />
+        {/* Nose */}
+        <ellipse cx="70" cy="55" rx="5.5" ry="4" fill={BLACK} />
+        {/* Eyes + mood */}
+        {mood === 'happy' ? (
+          <>
+            <path d="M53 46 Q59 41 65 46" stroke={BLACK} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+            <path d="M75 46 Q81 41 87 46" stroke={BLACK} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+            <path d="M62 60 Q70 70 78 60" stroke={BLACK} strokeWidth="2" fill="none" strokeLinecap="round" />
+            <ellipse cx="70" cy="67" rx="4" ry="5" fill="#f472b6" />
+          </>
+        ) : mood === 'sad' ? (
+          <>
+            <circle cx="59" cy="46" r="3.5" fill={BLACK} />
+            <circle cx="81" cy="46" r="3.5" fill={BLACK} />
+            <path d="M64 68 Q70 63 76 68" stroke={BLACK} strokeWidth="2" fill="none" strokeLinecap="round" />
+          </>
+        ) : (
+          <>
+            <circle cx="59" cy="46" r="3.5" fill={BLACK} />
+            <circle cx="59.8" cy="45" r="1.1" fill={WHITE} />
+            <circle cx="81" cy="46" r="3.5" fill={BLACK} />
+            <circle cx="81.8" cy="45" r="1.1" fill={WHITE} />
+            <path d="M64 64 Q70 68 76 64" stroke={BLACK} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+          </>
+        )}
+      </g>
+      {/* Alpine peaks on horizon */}
+      <text x="14" y="30" fontSize="16">🏔️</text>
+      <text x="110" y="30" fontSize="16">🌲</text>
+    </svg>
+  );
+}
+
 function Mascot({ who, mood, size }) {
   if (who === 'Ava') return <AvaMascot mood={mood} size={size} />;
   if (who === 'Layla') return <LaylaMascot mood={mood} size={size} />;
   if (who === 'Shyal') return <ShyalMascot mood={mood} size={size} />;
+  if (who === 'Felicity') return <FelicityMascot mood={mood} size={size} />;
   return <AvaMascot mood={mood} size={size} />;
 }
 
@@ -858,18 +951,20 @@ function ProfileSelection({ onSelect, progress }) {
   return (
     <div className="font-body min-h-screen w-full ava-bg flex flex-col items-center justify-center p-6">
       <div className="text-center mb-10 pop-in">
-        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ ⚔️</div>
+        <div className="text-6xl mb-2 floaty" onClick={handleTitleTap}>🐶 ⚽ ⚔️ 🐕</div>
         <h1 className="font-display text-3xl md:text-5xl font-bold leading-tight cursor-pointer select-none" onClick={handleTitleTap}>
           <span className="ava-text">Ava</span>
           <span className="text-gray-400">, </span>
           <span className="layla-text">Layla</span>
-          <span className="text-gray-400"> &amp; </span>
+          <span className="text-gray-400">, </span>
           <span className="shyal-text">Shyal</span>
+          <span className="text-gray-400"> &amp; </span>
+          <span className="felicity-text">Felicity</span>
         </h1>
         <h2 className="font-display text-3xl md:text-5xl font-semibold text-purple-700 mt-1">Learn Together!</h2>
         <p className="mt-4 text-lg text-gray-600 font-medium">Who's playing today?</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-5xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full max-w-6xl">
         {NAMES.map((n) => {
           const t = THEME[n];
           const totalPts = totalPoints(progress[n]);

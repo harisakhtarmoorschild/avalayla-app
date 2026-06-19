@@ -25,7 +25,9 @@ const MASCOT_VOICES = {
   Layla: { voiceId: 'c961b81c-a935-4c17-bfb3-ba2239de8c2f', speed: -0.1 },
   // Dran (Shyal's beyblade): Kiefer — calm American male voice-agent voice. Steady "fierce mentor" tone.
   // Swap for a deeper British voice once you find one you like in the Cartesia playground.
-  Shyal: { voiceId: '228fca29-3a0a-435c-8728-5cb483251068', speed: -0.2 }
+  Shyal: { voiceId: '228fca29-3a0a-435c-8728-5cb483251068', speed: -0.2 },
+  // Biscuit (Felicity's Bernese dog): Tessa — same bright young female voice as Pup. Warm & gentle.
+  Felicity: { voiceId: '6ccbfb76-1fc6-48f7-b71d-91ac6298247b', speed: -0.15 }
 };
 
 export default async function handler(req, res) {

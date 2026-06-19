@@ -174,6 +174,41 @@ input, textarea { user-select: text; -webkit-user-select: text; }
   pointer-events: none;
 }
 
+/* ---------- FELICITY'S WORLD — Alpine Paw Meadow (Bernese mountain dog) ---------- */
+.felicity-bg {
+  background:
+    radial-gradient(circle at 15% 20%, #fde68a 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, #fed7aa 0%, transparent 40%),
+    radial-gradient(circle at 80% 90%, #d9f99d 0%, transparent 38%),
+    radial-gradient(circle at 10% 85%, #fde68a 0%, transparent 40%),
+    linear-gradient(135deg, #fffbeb 0%, #f7fee7 100%);
+}
+.felicity-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  border: 2px solid rgba(146, 64, 14, 0.2);
+}
+.felicity-gradient { background: linear-gradient(135deg, #b45309 0%, #78350f 50%, #1c1917 100%); }
+.felicity-gradient-soft { background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%); }
+.felicity-text { color: #92400e; }
+.felicity-accent { color: #b45309; }
+.felicity-pill {
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+  border: 2px solid rgba(146, 64, 14, 0.4);
+  color: #78350f;
+}
+
+/* Paw-print dots pattern */
+.felicity-pattern::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle 4px at 18% 25%, rgba(146, 64, 14, 0.20) 99%, transparent),
+    radial-gradient(circle 3px at 78% 18%, rgba(28, 25, 23, 0.16) 99%, transparent),
+    radial-gradient(circle 5px at 62% 72%, rgba(180, 83, 9, 0.20) 99%, transparent),
+    radial-gradient(circle 3px at 22% 82%, rgba(28, 25, 23, 0.16) 99%, transparent);
+  pointer-events: none;
+}
+
 /* Generic input styling with theme tokens */
 .t-input {
   border: 3px solid var(--theme-border, #fbbf24);
