@@ -2945,7 +2945,6 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
   }
 
   // Reading phase
-  let wordCounter = -1;
   return (
     <ActivityShell user={user} title="Reading" emoji="📖" color="from-rose-400 to-red-500" onBack={() => setScreen('home')} onSaveExit={saveAndExit}>
       <div className="bg-white kid-shadow rounded-[2rem] p-6 md:p-10 pop-in">
@@ -2973,12 +2972,7 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
         </div>
 
         <div className="text-lg md:text-xl leading-relaxed text-gray-800 whitespace-pre-wrap bg-rose-50/40 p-5 rounded-2xl border-2 border-rose-100 min-h-[200px]" style={{fontFamily: "'Quicksand', sans-serif"}}>
-          {storyWords.map((seg, i) => {
-            if (/^\s+$/.test(seg)) return <span key={i}>{seg}</span>;
-            wordCounter++;
-            const isCurrent = wordCounter === currentWordIdx;
-            return <span key={i} className={isCurrent ? 'reading-highlight' : ''}>{seg}</span>;
-          })}
+          {storyWords.map((seg, i) => <span key={i}>{seg}</span>)}
         </div>
 
         <div className="mt-6 text-center">
