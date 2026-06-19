@@ -56,7 +56,7 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
   // Greet on open
   useEffect(() => {
     mountedRef.current = true;
-    const greeting = `Hi ${user}! It's ${persona.mascotName}. Just talk to me — I'm always listening. Or tap the button to switch to push-to-talk. I'm here to help with your writing!`;
+    const greeting = `Hi ${user}! It's ${persona.mascotName}. Just talk to me — I'm always listening. Or switch to tap-to-talk if you'd rather press a button. I'm here to help with your writing!`;
     setMessages([{ role: 'assistant', content: greeting }]);
     if (!muted) {
       setSpeaking(true);
@@ -238,18 +238,25 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
     }
   }
 
-  // ---------- walkie-talkie press/release ----------
-  function startHold(e) {
+  // ---------- tap-to-talk (manual mode) ----------
+  // One tap starts listening; a second tap stops and sends. Tap-to-toggle is far
+  // clearer for a child than press-and-hold ("do I keep holding it?"), and we set
+  // the visual state synchronously so the button reacts the instant it's tapped —
+  // before the (slightly slow) speech engine has finished spinning up.
+  function toggleTalk(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (mode !== 'walkie') return;
-    startRecognizer({ walkie: true });
-  }
-  function endHold(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    if (mode !== 'walkie') return;
-    if (recognizerRef.current && recognizerRef.current.stop) {
-      try { recognizerRef.current.stop(); } catch (err) {}
+    if (holding) {
+      // Already listening → stop and send what was heard.
+      if (recognizerRef.current && recognizerRef.current.stop) {
+        try { recognizerRef.current.stop(); } catch (err) {}
+      }
+      return;
     }
+    // Instant feedback, then start the recognizer.
+    setHolding(true);
+    setListening(true);
+    startRecognizer({ walkie: true });
   }
 
   function toggleMute() {
@@ -277,10 +284,11 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
           <div className="font-display text-lg font-bold text-gray-800 truncate">{persona.mascotName}</div>
           <div className="text-xs text-gray-500 truncate">
             {mode === 'live' && listening && !speaking && !thinking && <><span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse mr-1 align-middle" />Listening to {user}…</>}
+            {mode === 'walkie' && holding && !speaking && !thinking && <><span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse mr-1 align-middle" />Listening — tap to send</>}
             {speaking && <>Speaking…</>}
             {thinking && <>Thinking…</>}
             {!listening && !speaking && !thinking && mode === 'live' && <>Ready</>}
-            {mode === 'walkie' && !holding && <>Hold the mic to talk</>}
+            {mode === 'walkie' && !holding && !speaking && !thinking && <>Tap the mic to talk</>}
           </div>
         </div>
         {ttsOk && (
@@ -348,7 +356,7 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
               className={'px-3 py-1.5 rounded-full font-bold flex items-center gap-1 transition ' +
                 (mode === 'walkie' ? 'bg-violet-600 text-white shadow' : 'text-gray-600')}
             >
-              <Hand className="w-3.5 h-3.5" /> Hold-to-talk
+              <Hand className="w-3.5 h-3.5" /> Tap to talk
             </button>
           </div>
         </div>
@@ -359,19 +367,14 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
         <div className="flex gap-2 items-center">
           {sttOk && mode === 'walkie' && (
             <button
-              onMouseDown={startHold}
-              onMouseUp={endHold}
-              onMouseLeave={(e) => { if (holding) endHold(e); }}
-              onTouchStart={startHold}
-              onTouchEnd={endHold}
-              onTouchCancel={endHold}
-              onContextMenu={(e) => e.preventDefault()}
-              className={'pressable flex items-center justify-center w-14 h-14 rounded-full font-bold text-white kid-shadow flex-shrink-0 select-none touch-none ' +
+              type="button"
+              onClick={toggleTalk}
+              className={'pressable flex items-center justify-center w-14 h-14 rounded-full font-bold text-white kid-shadow flex-shrink-0 select-none ' +
                 (holding
                   ? 'bg-red-500 scale-110 animate-pulse'
                   : 'bg-gradient-to-br from-violet-400 to-purple-600')}
-              aria-label={holding ? 'Listening (release to send)' : 'Hold to talk'}
-              title="Hold to talk"
+              aria-label={holding ? 'Listening — tap to send' : 'Tap to talk'}
+              title={holding ? 'Tap to send' : 'Tap to talk'}
             >
               <Mic className="w-7 h-7" />
             </button>
@@ -398,7 +401,7 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
             ? `Type to chat with ${persona.mascotName}`
             : mode === 'live'
               ? `${persona.mascotName} is listening — just talk · pauses while ${persona.mascotName} replies`
-              : 'Press and hold 🎤 to talk · release to send'}
+              : 'Tap 🎤 to talk · tap again to send'}
         </div>
       </div>
     </div>

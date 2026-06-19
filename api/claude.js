@@ -414,10 +414,11 @@ ${(currentDraft || '').slice(0, 1200)}
 
 Important: replies are spoken aloud. Keep each reply to 1-3 short sentences. No markdown.`;
 
-      // Count user turns across the whole conversation (not just the trimmed window)
-      // and downgrade to the cheap model once chatter goes long.
-      const userTurns = messages.filter(m => m.role !== 'assistant').length;
-      const chatModel = userTurns > MASCOT_CHAT_CHEAP_AFTER_USER_TURNS ? MODEL_CHEAP : MODEL;
+      // Always use the fast model for the spoken chat. Sonnet added several
+      // seconds of latency per reply, which made the back-and-forth feel laggy
+      // and unnatural; Haiku 4.5 is plenty for short writing-help chat and keeps
+      // the conversation snappy.
+      const chatModel = MODEL_CHEAP;
 
       const reply = await callClaudeMessages(apiKey, {
         system: sys,
