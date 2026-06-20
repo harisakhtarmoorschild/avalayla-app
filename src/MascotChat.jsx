@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, Send, X, Volume2, VolumeX, Radio, Hand } from 'lucide-react';
+import { Mic, Send, X, Volume2, VolumeX } from 'lucide-react';
 import {
   createListener,
   isSttSupported,
@@ -29,7 +29,7 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
   const persona = MASCOT_PERSONAS[user] || MASCOT_PERSONAS.Ava;
   const [messages, setMessages] = useState([]);
   const [typed, setTyped] = useState('');
-  const [mode, setMode] = useState('live'); // 'live' | 'walkie'
+  const [mode] = useState('walkie'); // tap-to-talk only (live/always-listening mode removed)
   const [listening, setListening] = useState(false); // active recognition session
   const [holding, setHolding] = useState(false);     // walkie button currently pressed
   const [interim, setInterim] = useState('');
@@ -44,7 +44,7 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
   const scrollerRef = useRef(null);
   // We use a ref for mode because the listener callbacks close over the value
   // they had when registered; the ref lets them see the current mode.
-  const modeRef = useRef('live');
+  const modeRef = useRef('walkie');
   const speakingRef = useRef(false);
   const mountedRef = useRef(true);
   const sttOk = isSttSupported();
@@ -56,17 +56,11 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
   // Greet on open
   useEffect(() => {
     mountedRef.current = true;
-    const greeting = `Hi ${user}! It's ${persona.mascotName}. Just talk to me — I'm always listening. Or switch to tap-to-talk if you'd rather press a button. I'm here to help with your writing!`;
+    const greeting = `Hi ${user}! It's ${persona.mascotName}. Tap the big mic button to talk to me, then tap it again when you're done. I'm here to help with your writing!`;
     setMessages([{ role: 'assistant', content: greeting }]);
     if (!muted) {
       setSpeaking(true);
-      // After the greeting, live mode will auto-start listening (in onEnd below).
-      speakAsMascot(greeting, user, () => {
-        setSpeaking(false);
-        if (mountedRef.current && modeRef.current === 'live') maybeStartLive();
-      });
-    } else if (sttOk) {
-      maybeStartLive();
+      speakAsMascot(greeting, user, () => { setSpeaking(false); });
     }
     return () => {
       mountedRef.current = false;
@@ -227,17 +221,6 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
   }
 
   // ---------- mode switching ----------
-  function switchMode(next) {
-    if (next === mode) return;
-    stopRecognizer(true);
-    setMode(next);
-    modeRef.current = next;
-    if (next === 'live') {
-      // Start the live loop right away — gesture is fresh from this click.
-      setTimeout(() => maybeStartLive(), 50);
-    }
-  }
-
   // ---------- tap-to-talk (manual mode) ----------
   // One tap starts listening; a second tap stops and sends. Tap-to-toggle is far
   // clearer for a child than press-and-hold ("do I keep holding it?"), and we set
@@ -283,12 +266,10 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
         <div className="flex-1 min-w-0">
           <div className="font-display text-lg font-bold text-gray-800 truncate">{persona.mascotName}</div>
           <div className="text-xs text-gray-500 truncate">
-            {mode === 'live' && listening && !speaking && !thinking && <><span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse mr-1 align-middle" />Listening to {user}…</>}
-            {mode === 'walkie' && holding && !speaking && !thinking && <><span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse mr-1 align-middle" />Listening — tap to send</>}
-            {speaking && <>Speaking…</>}
-            {thinking && <>Thinking…</>}
-            {!listening && !speaking && !thinking && mode === 'live' && <>Ready</>}
-            {mode === 'walkie' && !holding && !speaking && !thinking && <>Tap the mic to talk</>}
+            {holding && !speaking && !thinking && <><span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse mr-1 align-middle" />Listening — tap to stop</>}
+            {thinking && <><span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse mr-1 align-middle" />Thinking…</>}
+            {speaking && !thinking && <>Speaking…</>}
+            {!holding && !speaking && !thinking && <>Tap the mic to talk</>}
           </div>
         </div>
         {ttsOk && (
@@ -338,53 +319,51 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
         )}
       </div>
 
-      {/* Mode toggle */}
-      {sttOk && (
-        <div className="px-3 pt-2 flex items-center justify-center gap-2">
-          <div className="inline-flex bg-gray-100 rounded-full p-1 text-xs">
-            <button
-              type="button"
-              onClick={() => switchMode('live')}
-              className={'px-3 py-1.5 rounded-full font-bold flex items-center gap-1 transition ' +
-                (mode === 'live' ? 'bg-red-500 text-white shadow' : 'text-gray-600')}
-            >
-              <Radio className="w-3.5 h-3.5" /> Live
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('walkie')}
-              className={'px-3 py-1.5 rounded-full font-bold flex items-center gap-1 transition ' +
-                (mode === 'walkie' ? 'bg-violet-600 text-white shadow' : 'text-gray-600')}
-            >
-              <Hand className="w-3.5 h-3.5" /> Tap to talk
-            </button>
+      {/* Talk control — big, obvious, state-coloured */}
+      <div className="px-3 pt-3">
+        {thinking ? (
+          <div className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-700 font-display font-bold">
+            <span className="flex gap-1">
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+            {persona.mascotName} is thinking…
           </div>
-        </div>
-      )}
+        ) : speaking ? (
+          <div className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-violet-100 border-2 border-violet-200 text-violet-700 font-display font-bold">
+            <Volume2 className="w-5 h-5" /> {persona.mascotName} is speaking…
+          </div>
+        ) : sttOk ? (
+          <button
+            type="button"
+            onClick={toggleTalk}
+            className={'w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-display font-bold text-white text-lg kid-shadow pressable select-none transition ' +
+              (holding ? 'bg-red-500 animate-pulse' : 'bg-gradient-to-br from-violet-500 to-purple-600')}
+            aria-label={holding ? 'Listening — tap to stop' : 'Tap to talk'}
+          >
+            <Mic className="w-6 h-6" />
+            {holding ? 'Listening… tap to stop' : 'Tap to talk'}
+          </button>
+        ) : (
+          <div className="text-center text-xs text-gray-400 py-2">Type below to chat with {persona.mascotName}</div>
+        )}
+        {sttOk && !thinking && !speaking && (
+          <div className="text-[11px] text-gray-400 text-center mt-2 leading-tight">
+            Tap once to start talking · tap again when you're done
+          </div>
+        )}
+      </div>
 
-      {/* Input row */}
-      <div className="p-3 bg-white">
+      {/* Type input */}
+      <div className="p-3 pt-2 bg-white">
         <div className="flex gap-2 items-center">
-          {sttOk && mode === 'walkie' && (
-            <button
-              type="button"
-              onClick={toggleTalk}
-              className={'pressable flex items-center justify-center w-14 h-14 rounded-full font-bold text-white kid-shadow flex-shrink-0 select-none ' +
-                (holding
-                  ? 'bg-red-500 scale-110 animate-pulse'
-                  : 'bg-gradient-to-br from-violet-400 to-purple-600')}
-              aria-label={holding ? 'Listening — tap to send' : 'Tap to talk'}
-              title={holding ? 'Tap to send' : 'Tap to talk'}
-            >
-              <Mic className="w-7 h-7" />
-            </button>
-          )}
           <input
             type="text"
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && typed.trim()) { sendMessage(typed); setTyped(''); } }}
-            placeholder={mode === 'live' ? 'Or type your question…' : 'Or type your question…'}
+            placeholder="Or type your question…"
             className="flex-1 px-3 py-2.5 rounded-2xl border-2 border-gray-200 focus:border-violet-400 outline-none text-sm"
           />
           <button
@@ -395,13 +374,6 @@ export default function MascotChat({ user, writingPrompt, currentDraft, onClose 
           >
             <Send className="w-5 h-5" />
           </button>
-        </div>
-        <div className="text-[11px] text-gray-400 text-center mt-2 leading-tight">
-          {!sttOk
-            ? `Type to chat with ${persona.mascotName}`
-            : mode === 'live'
-              ? `${persona.mascotName} is listening — just talk · pauses while ${persona.mascotName} replies`
-              : 'Tap 🎤 to talk · tap again to send'}
         </div>
       </div>
     </div>

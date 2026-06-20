@@ -173,27 +173,26 @@ Respond with ONLY valid JSON (no markdown):
       if (!word) return res.status(400).json({ error: 'Missing word' });
 
       const text = await callClaude(apiKey,
-`A 7-year-old will spell the word "${word}". Give them ONE helpful hint that does NOT directly spell or say the full word aloud.
+`A 7-year-old will spell the word "${word}". Return TWO things as JSON:
 
-A good hint usually includes:
-- A child-friendly definition
-- OR a sentence where the word would fit (use "___" instead of the word)
-- OR a category + first letter (e.g. "It's an animal. Starts with E")
+1. "hint": ONE helpful clue shown on screen that does NOT reveal the spelling — a child-friendly definition, OR a sentence with "___" where the word goes, OR a category + first letter (e.g. "It's an animal. Starts with E"). Never write the word's letters here.
 
-Do NOT include the spelling anywhere in the hint.
+2. "spoken": ONE short, natural sentence (max 12 words) that USES the word "${word}" out loud, exactly like a spelling test where the teacher uses the word in a sentence. This sentence DOES include the word.
 
 Respond with ONLY valid JSON:
-{"hint": "<one or two short sentences for a 7-year-old>"}`,
-        200);
+{"hint": "<screen clue, no spelling>", "spoken": "<short sentence that uses ${word}>"}`,
+        220);
 
       const parsed = extractJSON(text);
       if (parsed && parsed.hint) {
-        // Defensive: strip the word itself if the model accidentally included it
+        // Defensive: strip the word from the on-screen hint only (the spoken
+        // sentence is meant to contain it, dictation-style).
         parsed.hint = parsed.hint.replace(new RegExp(word, 'gi'), '___');
+        if (!parsed.spoken || typeof parsed.spoken !== 'string') parsed.spoken = '';
         return res.status(200).json(parsed);
       }
       const fallback = `Starts with "${word[0]}" and has ${word.length} letters.`;
-      return res.status(200).json({ hint: fallback });
+      return res.status(200).json({ hint: fallback, spoken: '' });
     }
 
     /* =========================================================
@@ -412,7 +411,7 @@ Their writing so far (may be empty if they haven't started):
 ${(currentDraft || '').slice(0, 1200)}
 """
 
-Important: replies are spoken aloud. Keep each reply to 1-3 short sentences. No markdown.`;
+Important: replies are spoken aloud, so keep them VERY short — 1 to 2 short sentences, ideally under 25 words. Get to the point quickly. No markdown.`;
 
       // Always use the fast model for the spoken chat. Sonnet added several
       // seconds of latency per reply, which made the back-and-forth feel laggy
@@ -423,7 +422,7 @@ Important: replies are spoken aloud. Keep each reply to 1-3 short sentences. No 
       const reply = await callClaudeMessages(apiKey, {
         system: sys,
         messages: trimmed,
-        maxTokens: 300,
+        maxTokens: 160,
         model: chatModel
       });
       const cleaned = (reply || '').replace(/[*_`#]+/g, '').trim();

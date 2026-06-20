@@ -1754,6 +1754,7 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
   const [hint, setHint] = useState('');
   const [hintLoading, setHintLoading] = useState(false);
   const [hintVisible, setHintVisible] = useState(false);
+  const [hintSpoken, setHintSpoken] = useState(''); // an example sentence using the word, read aloud
   // Learn phase: when child gets a word wrong, they must type it correctly 3 times
   const [learnMode, setLearnMode] = useState(false);
   const [learnWord, setLearnWord] = useState('');
@@ -1801,16 +1802,31 @@ function SpellingActivity({ user, progress, currentDay, saveActivity, setScreen 
   }, [step, done, learnMode, lastResult]);
 
   // Reset hint when moving to next word
-  useEffect(() => { setHint(''); setHintVisible(false); }, [step]);
+  useEffect(() => { setHint(''); setHintVisible(false); setHintSpoken(''); }, [step]);
+
+  // Read the word inside a short sentence, dictation-style: word → sentence → word.
+  function speakHintSentence(word, sentence) {
+    if (!word) return;
+    const line = sentence ? `${word}. ${sentence} ${word}.` : `${word}. ${word}.`;
+    speak(line, {});
+  }
 
   async function fetchHint() {
     const word = words[step];
-    if (hint) { setHintVisible(true); return; }
+    if (hint) { setHintVisible(true); speakHintSentence(word, hintSpoken); return; }
     setHintLoading(true);
     const res = await aiCall('spelling-hint', { word });
     setHintLoading(false);
-    if (res && res.hint) { setHint(res.hint); setHintVisible(true); }
-    else { setHint(`Starts with "${word[0]}" and has ${word.length} letters.`); setHintVisible(true); }
+    if (res && res.hint) {
+      setHint(res.hint);
+      setHintSpoken(res.spoken || '');
+      setHintVisible(true);
+      speakHintSentence(word, res.spoken || '');
+    } else {
+      setHint(`Starts with "${word[0]}" and has ${word.length} letters.`);
+      setHintVisible(true);
+      speakHintSentence(word, '');
+    }
   }
 
   function advanceOrFinish(newResults) {
@@ -2200,7 +2216,18 @@ function VocabActivity({ user, currentDay, saveActivity, setScreen }) {
               ))}
             </div>
           )}
-          <button onClick={() => { sfx.pop(); speakWord(q.word); }} className="mt-3 text-sky-600 text-sm font-semibold flex items-center gap-1 mx-auto"><Volume2 className="w-4 h-4" /> Hear "{q.word}"</button>
+          <button onClick={() => {
+            sfx.pop();
+            const wObj = words[q.wordIdx];
+            // On meaning questions, read the word inside its sentence (great for
+            // understanding). On usage questions the sentence is the puzzle, so we
+            // only say the word to avoid giving the answer away.
+            if (q.kind === 'meaning' && wObj && wObj.sentence) {
+              speak(`${q.word}. ${wObj.sentence.replace(/\{BLANK\}/g, q.word)}`, {});
+            } else {
+              speakWord(q.word);
+            }
+          }} className="mt-3 text-sky-600 text-sm font-semibold flex items-center gap-1 mx-auto"><Volume2 className="w-4 h-4" /> {q.kind === 'meaning' ? `Hear "${q.word}" in a sentence` : `Hear "${q.word}"`}</button>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           {q.options.map((opt, idx) => {
