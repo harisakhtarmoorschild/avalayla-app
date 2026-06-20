@@ -411,7 +411,8 @@ Their writing so far (may be empty if they haven't started):
 ${(currentDraft || '').slice(0, 1200)}
 """
 
-Important: replies are spoken aloud, so keep them VERY short — 1 to 2 short sentences, ideally under 25 words. Get to the point quickly. No markdown.`;
+Important: your reply is read aloud, so use ONLY plain spoken English — no markdown, headings, lists or bullet points.
+Your aim is to help ${childName} get better at describing things in prose. When they are stuck or ask for help, give them several specific, imaginative, descriptive ideas they could actually use — concrete details, things you can see, hear, smell, taste or feel, fun comparisons (similes and metaphors), and vivid describing words — with real example phrases they could borrow. Offer a few rich ideas rather than just one. Stay warm, encouraging and on-topic, and use words a 7-year-old understands.`;
 
       // Always use the fast model for the spoken chat. Sonnet added several
       // seconds of latency per reply, which made the back-and-forth feel laggy
@@ -422,7 +423,7 @@ Important: replies are spoken aloud, so keep them VERY short — 1 to 2 short se
       const reply = await callClaudeMessages(apiKey, {
         system: sys,
         messages: trimmed,
-        maxTokens: 160,
+        maxTokens: 500,
         model: chatModel
       });
       const cleaned = (reply || '').replace(/[*_`#]+/g, '').trim();

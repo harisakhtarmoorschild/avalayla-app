@@ -141,9 +141,10 @@ export const MASCOT_PERSONAS = {
 You speak in short, cheerful sentences. Sometimes you say "Woof!" or mention your tail wagging.
 You are helping Ava with her writing today.
 You can: cheer her on, suggest a story idea or character, help her spell a tricky word, or explain the writing prompt in easier words.
-Be warm and never patronising. Keep replies to 1 to 3 short sentences — they will be spoken aloud.
-Use simple words a 7-year-old understands.
-Never use markdown, asterisks, headings, or bullet points — only plain spoken English.`
+Be warm and never patronising. Your job is to help them get better at describing things in their writing.
+When they ask for help or seem stuck, give them several (about 2 to 4) specific, imaginative, descriptive ideas they could actually use — concrete details, things you can see, hear, smell, taste or feel, fun comparisons (similes and metaphors), and vivid describing words — with real example phrases they could borrow. Make their writing come alive.
+Speak naturally and warmly, like a friend brainstorming out loud. It's good to offer a few rich ideas rather than just one; take the time you need, but stay on topic and use words a 7-year-old understands.
+Never use markdown, asterisks, headings, lists or bullet points — only plain spoken English, because your words are read aloud.`
   },
   Layla: {
     mascotName: 'Champ',
@@ -154,9 +155,10 @@ Never use markdown, asterisks, headings, or bullet points — only plain spoken 
 You speak like an excited but kind sports commentator. You compare good ideas to goals, fair play, and championship moments.
 You are helping Layla with her writing today.
 You can: cheer her on, suggest a story idea or character, help her spell a tricky word, or explain the writing prompt in easier words.
-Be warm and never patronising. Keep replies to 1 to 3 short sentences — they will be spoken aloud.
-Use simple words a 7-year-old understands.
-Never use markdown, asterisks, headings, or bullet points — only plain spoken English.`
+Be warm and never patronising. Your job is to help them get better at describing things in their writing.
+When they ask for help or seem stuck, give them several (about 2 to 4) specific, imaginative, descriptive ideas they could actually use — concrete details, things you can see, hear, smell, taste or feel, fun comparisons (similes and metaphors), and vivid describing words — with real example phrases they could borrow. Make their writing come alive.
+Speak naturally and warmly, like a friend brainstorming out loud. It's good to offer a few rich ideas rather than just one; take the time you need, but stay on topic and use words a 7-year-old understands.
+Never use markdown, asterisks, headings, lists or bullet points — only plain spoken English, because your words are read aloud.`
   },
   Shyal: {
     mascotName: 'Dran',
@@ -167,9 +169,10 @@ Never use markdown, asterisks, headings, or bullet points — only plain spoken 
 You speak like a fierce but encouraging senior beyblader. You compare good ideas to brave launches, perfect spins, and stadium battles won.
 You are helping Shyal with his writing today.
 You can: cheer him on, suggest a story idea or character, help him spell a tricky word, or explain the writing prompt in easier words.
-Be warm and never patronising. Keep replies to 1 to 3 short sentences — they will be spoken aloud.
-Use simple words a 7-year-old understands.
-Never use markdown, asterisks, headings, or bullet points — only plain spoken English.`
+Be warm and never patronising. Your job is to help them get better at describing things in their writing.
+When they ask for help or seem stuck, give them several (about 2 to 4) specific, imaginative, descriptive ideas they could actually use — concrete details, things you can see, hear, smell, taste or feel, fun comparisons (similes and metaphors), and vivid describing words — with real example phrases they could borrow. Make their writing come alive.
+Speak naturally and warmly, like a friend brainstorming out loud. It's good to offer a few rich ideas rather than just one; take the time you need, but stay on topic and use words a 7-year-old understands.
+Never use markdown, asterisks, headings, lists or bullet points — only plain spoken English, because your words are read aloud.`
   },
   Felicity: {
     mascotName: 'Biscuit',
@@ -180,9 +183,10 @@ Never use markdown, asterisks, headings, or bullet points — only plain spoken 
 You speak in warm, gentle, cheerful sentences. Sometimes you mention your big fluffy paws, your waggy tail, or bounding through mountain meadows.
 You are helping Felicity with her writing today.
 You can: cheer her on, suggest a story idea or character, help her spell a tricky word, or explain the writing prompt in easier words.
-Be warm and never patronising. Keep replies to 1 to 3 short sentences — they will be spoken aloud.
-Use simple words a 7-year-old understands.
-Never use markdown, asterisks, headings, or bullet points — only plain spoken English.`
+Be warm and never patronising. Your job is to help them get better at describing things in their writing.
+When they ask for help or seem stuck, give them several (about 2 to 4) specific, imaginative, descriptive ideas they could actually use — concrete details, things you can see, hear, smell, taste or feel, fun comparisons (similes and metaphors), and vivid describing words — with real example phrases they could borrow. Make their writing come alive.
+Speak naturally and warmly, like a friend brainstorming out loud. It's good to offer a few rich ideas rather than just one; take the time you need, but stay on topic and use words a 7-year-old understands.
+Never use markdown, asterisks, headings, lists or bullet points — only plain spoken English, because your words are read aloud.`
   }
 };
 
@@ -209,51 +213,105 @@ function getSharedAudio() {
 }
 
 let lastBlobUrl = null;
+// Epoch invalidates any in-flight chunked-playback pipeline when we stop or start
+// a new utterance, so overlapping calls can't talk over each other.
+let speechEpoch = 0;
+let currentPlayResolve = null;
 
 export function stopMascotAudio() {
+  speechEpoch++;
   if (sharedAudio) {
     try { sharedAudio.pause(); } catch (e) {}
   }
+  // Unblock any pending play() promise so its pipeline can unwind.
+  if (currentPlayResolve) { const r = currentPlayResolve; currentPlayResolve = null; try { r(false); } catch (e) {} }
   if (lastBlobUrl) { try { URL.revokeObjectURL(lastBlobUrl); } catch (e) {} lastBlobUrl = null; }
   cancelSpeech();
 }
 
-// speakAsMascot — try Cartesia first (via /api/tts proxy), fall back to
-// browser speechSynthesis if the server isn't configured or the request fails.
-// Returns nothing; caller passes onEnd for completion.
-export async function speakAsMascot(text, mascotKey, onEnd) {
-  if (!text) { onEnd && setTimeout(onEnd, 0); return; }
-  stopMascotAudio();
-  const persona = MASCOT_PERSONAS[mascotKey] || MASCOT_PERSONAS.Ava;
+// Split a reply into short speakable chunks (sentences). The FIRST chunk is kept
+// to a single sentence so the very first audio starts almost immediately; the
+// following sentences are grouped into ~160-char chunks. We generate each chunk
+// WHILE the previous one is playing, so even a long reply "streams" out with the
+// voice starting quickly instead of waiting for the whole clip.
+function splitIntoSpeechChunks(text) {
+  const clean = String(text).replace(/\s+/g, ' ').trim();
+  if (!clean) return [];
+  const sentences = clean.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || [clean];
+  const chunks = [];
+  let buf = '';
+  for (let s of sentences) {
+    s = s.trim();
+    if (!s) continue;
+    buf = buf ? `${buf} ${s}` : s;
+    // Flush after the first sentence (fast first audio), then in ~160-char groups.
+    if (chunks.length === 0 || buf.length >= 160) { chunks.push(buf); buf = ''; }
+  }
+  if (buf) chunks.push(buf);
+  return chunks;
+}
+
+async function fetchTtsBlobUrl(text, mascotKey) {
   try {
     const r = await fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, mascot: mascotKey })
     });
-    if (!r.ok) throw new Error('tts ' + r.status);
+    if (!r.ok) return null;
     const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    lastBlobUrl = url;
+    return URL.createObjectURL(blob);
+  } catch (e) { return null; }
+}
+
+function playBlobUrl(url) {
+  return new Promise((resolve) => {
     const audio = getSharedAudio();
-    if (!audio) throw new Error('no audio element');
-    audio.onended = () => {
+    if (!audio) { resolve(false); return; }
+    let done = false;
+    const finish = (val) => {
+      if (done) return; done = true;
+      currentPlayResolve = null;
       if (lastBlobUrl === url) { try { URL.revokeObjectURL(url); } catch (e) {} lastBlobUrl = null; }
-      onEnd && onEnd();
+      resolve(val);
     };
-    audio.onerror = () => {
-      if (lastBlobUrl === url) { try { URL.revokeObjectURL(url); } catch (e) {} lastBlobUrl = null; }
-      // Fall back to browser TTS so the kid still hears something.
-      speak(text, persona.voiceHint, onEnd);
-    };
+    currentPlayResolve = () => finish(false);
+    lastBlobUrl = url;
+    audio.onended = () => finish(true);
+    audio.onerror = () => finish(false);
     audio.src = url;
-    try {
-      await audio.play();
-    } catch (e) {
-      // Autoplay policy may still reject if no gesture in this task. Fall back.
-      speak(text, persona.voiceHint, onEnd);
+    audio.play().catch(() => finish(false));
+  });
+}
+
+// speakAsMascot — streams the Cartesia voice (via /api/tts) chunk-by-chunk so the
+// mascot starts talking quickly; falls back to browser speechSynthesis per-chunk
+// if the server isn't configured or a request fails. Caller passes onEnd.
+export async function speakAsMascot(text, mascotKey, onEnd) {
+  if (!text) { onEnd && setTimeout(onEnd, 0); return; }
+  stopMascotAudio();
+  const myEpoch = speechEpoch;
+  const persona = MASCOT_PERSONAS[mascotKey] || MASCOT_PERSONAS.Ava;
+  const chunks = splitIntoSpeechChunks(text);
+  if (!chunks.length) { onEnd && setTimeout(onEnd, 0); return; }
+
+  const speakBrowserChunk = (t) => new Promise(res => speak(t, persona.voiceHint, res));
+
+  // Generate the first chunk, then prefetch each next chunk while the current plays.
+  let nextPromise = fetchTtsBlobUrl(chunks[0], mascotKey);
+  for (let i = 0; i < chunks.length; i++) {
+    if (speechEpoch !== myEpoch) return;
+    const url = await nextPromise;
+    if (speechEpoch !== myEpoch) { if (url) { try { URL.revokeObjectURL(url); } catch (e) {} } return; }
+    nextPromise = (i + 1 < chunks.length) ? fetchTtsBlobUrl(chunks[i + 1], mascotKey) : Promise.resolve(null);
+    if (!url) {
+      await speakBrowserChunk(chunks[i]);
+      if (speechEpoch !== myEpoch) return;
+      continue;
     }
-  } catch (e) {
-    speak(text, persona.voiceHint, onEnd);
+    const ok = await playBlobUrl(url);
+    if (speechEpoch !== myEpoch) return;
+    if (!ok) { await speakBrowserChunk(chunks[i]); if (speechEpoch !== myEpoch) return; }
   }
+  if (speechEpoch === myEpoch) onEnd && onEnd();
 }
