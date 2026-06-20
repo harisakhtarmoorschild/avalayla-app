@@ -342,6 +342,10 @@ function setActiveMascotForSpeech(kid) { activeMascotKey = kid || null; }
 // audio is silently blocked (this was the "voice cuts in and out" bug).
 let currentMascotAudio = null;
 let lastSpeechBlobUrl = null;
+// Epoch invalidates an in-flight chunked narration when we stop/restart.
+let narrationEpoch = 0;
+let narrationPlayResolve = null;
+let narrationPaused = false; // true while the child has paused, so chunks don't auto-advance
 function getSpeechAudio() {
   if (!currentMascotAudio) {
     currentMascotAudio = new Audio();
@@ -487,6 +491,9 @@ function speakWordBrowser(word) {
 }
 
 function stopSpeaking() {
+  narrationEpoch++; // cancel any running chunked narration pipeline
+  narrationPaused = false;
+  if (narrationPlayResolve) { const r = narrationPlayResolve; narrationPlayResolve = null; try { r(false); } catch (e) {} }
   try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
   if (currentMascotAudio) {
     try { currentMascotAudio.pause(); } catch (e) {}
@@ -494,6 +501,95 @@ function stopSpeaking() {
     try { currentMascotAudio.removeAttribute('src'); currentMascotAudio.load(); } catch (e) {}
   }
   if (lastSpeechBlobUrl) { try { URL.revokeObjectURL(lastSpeechBlobUrl); } catch (e) {} lastSpeechBlobUrl = null; }
+}
+
+// Split long narration into short speakable chunks (sentences). First chunk is a
+// single sentence for fast first audio; later sentences group into ~200-char chunks.
+function splitNarrationChunks(text) {
+  const clean = String(text).replace(/\s+/g, ' ').trim();
+  if (!clean) return [];
+  const sentences = clean.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || [clean];
+  const chunks = [];
+  let buf = '';
+  for (let s of sentences) {
+    s = s.trim();
+    if (!s) continue;
+    buf = buf ? `${buf} ${s}` : s;
+    if (chunks.length === 0 || buf.length >= 200) { chunks.push(buf); buf = ''; }
+  }
+  if (buf) chunks.push(buf);
+  return chunks;
+}
+
+async function fetchNarrationUrl(text) {
+  if (!activeMascotKey) return null;
+  try {
+    const r = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, mascot: activeMascotKey })
+    });
+    if (!r.ok) return null;
+    const blob = await r.blob();
+    return URL.createObjectURL(blob);
+  } catch (e) { return null; }
+}
+
+function playNarrationUrl(url, onstart) {
+  return new Promise((resolve) => {
+    const audio = getSpeechAudio();
+    if (!audio) { resolve(false); return; }
+    let done = false;
+    const finish = (v) => {
+      if (done) return; done = true;
+      narrationPlayResolve = null;
+      if (lastSpeechBlobUrl === url) { try { URL.revokeObjectURL(url); } catch (e) {} lastSpeechBlobUrl = null; }
+      resolve(v);
+    };
+    narrationPlayResolve = () => finish(false);
+    lastSpeechBlobUrl = url;
+    audio.onended = () => finish(true);
+    audio.onerror = () => finish(false);
+    audio.src = url;
+    onstart && onstart();
+    audio.play().catch(() => finish(false));
+  });
+}
+
+// narrateCartesia — streams a long passage in the kid's mascot voice, chunk by
+// chunk, so narration starts quickly and each next chunk is generated while the
+// current one plays. Pause/resume work because they act on the shared <audio>
+// element. Falls back to the browser voice per-chunk (or whole text) if needed.
+async function narrateCartesia(text, opts = {}) {
+  if (!text) { opts.onend && opts.onend(); return; }
+  if (!activeMascotKey) { return speakBrowser(text, opts); }
+  stopSpeaking();
+  const myEpoch = narrationEpoch;
+  const chunks = splitNarrationChunks(text);
+  if (!chunks.length) { opts.onend && opts.onend(); return; }
+  const browserChunk = (t) => new Promise(res => speakBrowser(t, { rate: opts.rate, pitch: opts.pitch, narration: opts.narration, onend: res }));
+
+  let nextPromise = fetchNarrationUrl(chunks[0]);
+  let started = false;
+  for (let i = 0; i < chunks.length; i++) {
+    if (narrationEpoch !== myEpoch) return;
+    const url = await nextPromise;
+    if (narrationEpoch !== myEpoch) { if (url) { try { URL.revokeObjectURL(url); } catch (e) {} } return; }
+    nextPromise = (i + 1 < chunks.length) ? fetchNarrationUrl(chunks[i + 1]) : Promise.resolve(null);
+    // If the child paused (even between chunks), wait here before playing the next.
+    while (narrationPaused && narrationEpoch === myEpoch) { await new Promise(r => setTimeout(r, 120)); }
+    if (narrationEpoch !== myEpoch) { if (url) { try { URL.revokeObjectURL(url); } catch (e) {} } return; }
+    if (!url) {
+      await browserChunk(chunks[i]);
+      if (narrationEpoch !== myEpoch) return;
+      continue;
+    }
+    const ok = await playNarrationUrl(url, started ? null : opts.onstart);
+    started = true;
+    if (narrationEpoch !== myEpoch) return;
+    if (!ok) { await browserChunk(chunks[i]); if (narrationEpoch !== myEpoch) return; }
+  }
+  if (narrationEpoch === myEpoch) opts.onend && opts.onend();
 }
 
 /* --------- API helpers --------- */
@@ -2789,86 +2885,25 @@ function ReadingActivity({ user, currentDay, saveActivity, setScreen }) {
 
   function startReading() {
     if (!story) return;
-    stopSpeaking(); if (timerRef.current) clearInterval(timerRef.current);
-    const fullText = story.story;
+    stopSpeaking(); if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    // currentWordIdx is used only as a "reading has started" flag now (it drives
+    // the Resume/Restart buttons); the story is narrated as a stream of chunks.
     setCurrentWordIdx(0); setPlaying(true);
-
-    // Build a map of character offset -> word index in the displayed text
-    // so we can use the utterance's onboundary event to highlight the correct
-    // word as the TTS engine actually speaks it.
-    const wordOffsets = []; // charIndex at the start of each word
-    {
-      let i = 0, inWord = false, wIdx = 0;
-      while (i < fullText.length) {
-        const ch = fullText[i];
-        if (/\s/.test(ch)) inWord = false;
-        else if (!inWord) { wordOffsets.push({ char: i, wordIdx: wIdx++ }); inWord = true; }
-        i++;
-      }
-    }
-
-    function findWordIdxForChar(charIdx) {
-      // Linear scan — lists are short enough that binary search isn't needed
-      let lastMatch = 0;
-      for (let i = 0; i < wordOffsets.length; i++) {
-        if (wordOffsets[i].char <= charIdx) lastMatch = wordOffsets[i].wordIdx;
-        else break;
-      }
-      return lastMatch;
-    }
-
-    utteranceRef.current = speak(fullText, {
+    narrateCartesia(story.story, {
       rate: 0.88, pitch: 1.04, narration: true,
-      onboundary: (ev) => {
-        // Fires for each word or sentence boundary during speech.
-        // ev.charIndex is offset within the utterance text.
-        if (ev && ev.name === 'word' && typeof ev.charIndex === 'number') {
-          setCurrentWordIdx(findWordIdxForChar(ev.charIndex));
-        }
-      },
-      onend: () => {
-        setPlaying(false);
-        setCurrentWordIdx(-1);
-      },
-      onerror: () => {
-        setPlaying(false);
-        setCurrentWordIdx(-1);
-      }
+      onend: () => { setPlaying(false); setCurrentWordIdx(-1); },
+      onerror: () => { setPlaying(false); setCurrentWordIdx(-1); }
     });
-
-    // Safari iOS does not reliably fire onboundary events for long text. Fall
-    // back to a gentle per-word timer that is paused when onboundary fires.
-    const totalWords = fullText.split(/\s+/).length;
-    const estSeconds = Math.max(90, totalWords / 2.4); // ~144 wpm
-    const perWordMs = (estSeconds * 1000) / totalWords;
-    let lastBoundaryAt = Date.now();
-    utteranceRef.current && (utteranceRef.current._origBoundary = utteranceRef.current.onboundary);
-    if (utteranceRef.current) {
-      utteranceRef.current.onboundary = (ev) => {
-        lastBoundaryAt = Date.now();
-        if (ev && ev.name === 'word' && typeof ev.charIndex === 'number') {
-          setCurrentWordIdx(findWordIdxForChar(ev.charIndex));
-        }
-      };
-    }
-    timerRef.current = setInterval(() => {
-      // Only advance if onboundary hasn't fired recently (Safari fallback)
-      if (Date.now() - lastBoundaryAt > perWordMs * 1.6) {
-        setCurrentWordIdx(idx => {
-          if (idx < 0) return 0;
-          if (idx >= totalWords - 1) { clearInterval(timerRef.current); timerRef.current = null; return idx; }
-          return idx + 1;
-        });
-      }
-    }, perWordMs);
   }
   function pauseReading() {
+    narrationPaused = true; // stop the chunk pipeline from auto-advancing
     try { window.speechSynthesis.pause(); } catch (e) {}
     if (currentMascotAudio) { try { currentMascotAudio.pause(); } catch (e) {} }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     setPlaying(false);
   }
   function resumeReading() {
+    narrationPaused = false;
     let resumed = false;
     if (currentMascotAudio) {
       try { currentMascotAudio.play(); setPlaying(true); resumed = true; } catch (e) {}
